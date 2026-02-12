@@ -24,35 +24,7 @@ COPY sync-repos.sh /usr/local/bin/sync-repos.sh
 RUN chmod +x /usr/local/bin/sync-repos.sh
 
 # 配置 CentOS Vault 仓库
-RUN cat > /etc/yum.repos.d/CentOS-Vault.repo << 'EOF'
-[C7.9.2009-base]
-name=CentOS-7.9.2009 - Base
-baseurl=https://mirrors.tuna.tsinghua.edu.cn/centos-vault/7.9.2009/os/x86_64/
-gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
-enabled=0
-
-[C7.9.2009-updates]
-name=CentOS-7.9.2009 - Updates
-baseurl=https://mirrors.tuna.tsinghua.edu.cn/centos-vault/7.9.2009/updates/x86_64/
-gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
-enabled=0
-
-[C7.9.2009-extras]
-name=CentOS-7.9.2009 - Extras
-baseurl=https://mirrors.tuna.tsinghua.edu.cn/centos-vault/7.9.2009/extras/x86_64/
-gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
-enabled=0
-
-[C7.9.2009-centosplus]
-name=CentOS-7.9.2009 - CentOSPlus
-baseurl=https://mirrors.tuna.tsinghua.edu.cn/centos-vault/7.9.2009/centosplus/x86_64/
-gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
-enabled=0
-EOF
+COPY CentOS-Vault.repo /etc/yum.repos.d/CentOS-Vault.repo
 
 # 设置工作目录
 WORKDIR /data/repos
