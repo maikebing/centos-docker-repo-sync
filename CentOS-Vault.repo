@@ -19,9 +19,9 @@ gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
 enabled=0
 
-[C7.9.2009-centosplus]
-name=CentOS-7.9.2009 - CentOSPlus
-baseurl=https://mirrors.tuna.tsinghua.edu.cn/centos-vault/7.9.2009/centosplus/x86_64/
+[epel]
+name=Extra Packages for Enterprise Linux 7
+baseurl=https://mirrors.tuna.tsinghua.edu.cn/epel/7/x86_64/
 gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+gpgkey=https://mirrors.tuna.tsinghua.edu.cn/epel/RPM-GPG-KEY-EPEL-7
 enabled=0

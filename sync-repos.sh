@@ -21,7 +21,7 @@ log "正在同步 CentOS 7.9.2009 仓库..."
 mkdir -p ${CENTOS_TARGET}
 
 # 定义需要同步的 CentOS 仓库
-REPOS=("os" "updates" "extras" "centosplus")
+REPOS=("os" "updates" "extras")
 
 for repo in "${REPOS[@]}"; do
     log "开始同步 ${repo} 仓库..."
@@ -76,9 +76,27 @@ log "CentOS 仓库位置: ${CENTOS_TARGET}"
 log "Docker 仓库位置: ${DOCKER_TARGET}"
 log "=========================================="
 
+# 同步 EPEL 仓库
+EPEL_TARGET="/data/repos/epel/7"
+log "正在同步 EPEL 仓库..."
+mkdir -p ${EPEL_TARGET}
+reposync -c /etc/yum.repos.d/CentOS-Vault.repo \
+    --repoid=epel \
+    --download-metadata \
+    --download_path=${EPEL_TARGET} \
+    -n || log "警告: EPEL 同步可能不完整"
+
+if [ -d "${EPEL_TARGET}" ]; then
+    log "为 EPEL 创建元数据..."
+    createrepo --update ${EPEL_TARGET}/epel || \
+    createrepo ${EPEL_TARGET}/epel
+    log "EPEL 元数据创建完成"
+fi
+
 # 显示磁盘使用情况
 log "CentOS 目录大小: $(du -sh ${CENTOS_TARGET} 2>/dev/null || echo "目录为空")"
 log "Docker 目录大小: $(du -sh ${DOCKER_TARGET} 2>/dev/null || echo "目录为空")"
+log "EPEL 目录大小: $(du -sh ${EPEL_TARGET} 2>/dev/null || echo "目录为空")"
 
 log "下次同步将在 24 小时后执行..."
 sleep ${SYNC_INTERVAL}
