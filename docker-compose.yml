@@ -3,5 +3,5 @@ services:
   centos-docker-repo-sync:
     build: .
     volumes:
-      - /data/repos:/data/repos
+      - ./repos:/data/repos
     command: /bin/bash -c "sleep infinity"
