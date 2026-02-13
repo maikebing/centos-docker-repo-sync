@@ -7,87 +7,89 @@ using SharpCompress.Compressors.Xz;
 namespace RepoSync.Services;
 
 /// <summary>
-/// RPM ä»“åº“åŒæ­¥å™¨ - æ›¿ä»£ reposync å‘½ä»¤
+/// RPM ²Ö¿âÍ¬²½Æ÷ - Ìæ´ú reposync ÃüÁî
 /// 
-/// åŸç†ï¼š
-/// 1. ä¸‹è½½ repodata/repomd.xml è·å–å…ƒæ•°æ®æ–‡ä»¶åˆ—è¡¨
-/// 2. ä» repomd.xml ä¸­æ‰¾åˆ° primary.xml.gz çš„ä½ç½®
-/// 3. ä¸‹è½½å¹¶è§£æ primary.xml.gzï¼Œè·å–æ‰€æœ‰ RPM åŒ…çš„ä¿¡æ¯
-/// 4. å¯¹æ¯”æœ¬åœ°å·²æœ‰æ–‡ä»¶ï¼Œä»…ä¸‹è½½ç¼ºå¤±æˆ–æ ¡éªŒä¸é€šè¿‡çš„åŒ…
-/// 5. ä¿å­˜å…ƒæ•°æ®æ–‡ä»¶
+/// ¹¤×÷Á÷³Ì:
+/// 1. ÏÂÔØ repodata/repomd.xml »ñÈ¡ÔªÊı¾İÎÄ¼şÇåµ¥
+/// 2. ´Ó repomd.xml »ñÈ¡ primary.xml.gz µÈÎÄ¼şÂ·¾¶
+/// 3. ÏÂÔØ²¢½âÎö primary.xml.gz µÃµ½ËùÓĞ RPM °üĞÅÏ¢
+/// 4. ¶Ô±È±¾µØÒÑÓĞÎÄ¼ş£¬½öÏÂÔØÈ±Ê§»ò´óĞ¡²»Æ¥ÅäµÄ°ü
+/// 5. ±£´æÔªÊı¾İÎÄ¼ş
 /// </summary>
 public class RepoSyncer
 {
     private readonly HttpClient _httpClient;
     private readonly int _maxConcurrent;
+    private readonly LocalFileCache _localCache;
 
-    // repomd.xml ä¸­å¸¸ç”¨çš„ XML å‘½åç©ºé—´
+    // repomd.xml ºÍ primary.xml Ê¹ÓÃµÄ XML ÃüÃû¿Õ¼ä
     private static readonly XNamespace RepoNs = "http://linux.duke.edu/metadata/repo";
     private static readonly XNamespace RpmNs = "http://linux.duke.edu/metadata/rpm";
     private static readonly XNamespace CommonNs = "http://linux.duke.edu/metadata/common";
 
-    public RepoSyncer(HttpClient httpClient, int maxConcurrentDownloads = 5)
+    public RepoSyncer(HttpClient httpClient, LocalFileCache localCache, int maxConcurrentDownloads = 5)
     {
         _httpClient = httpClient;
+        _localCache = localCache;
         _maxConcurrent = maxConcurrentDownloads;
     }
 
     /// <summary>
-    /// åŒæ­¥ä¸€ä¸ªä»“åº“ï¼ˆæ›¿ä»£ reposync + createrepoï¼‰
+    /// Í¬²½µ¥¸ö²Ö¿âµÄÍêÕûÁ÷³Ì£¬Ïàµ±ÓÚ reposync + createrepo
     /// </summary>
-    /// <param name="baseUrl">è¿œç¨‹ä»“åº“ baseurlï¼ˆå¦‚ https://mirrors.tuna.tsinghua.edu.cn/centos-vault/7.9.2009/os/x86_64ï¼‰</param>
-    /// <param name="localPath">æœ¬åœ°ç›®æ ‡ç›®å½•</param>
-    /// <param name="repoName">ä»“åº“åç§°ï¼ˆç”¨äºæ—¥å¿—ï¼‰</param>
+    /// <param name="baseUrl">Ô¶³Ì²Ö¿âµÄ baseurl£¬Èç https://mirrors.tuna.tsinghua.edu.cn/centos-vault/7.9.2009/os/x86_64</param>
+    /// <param name="localPath">±¾µØ´æ´¢Ä¿Â¼Â·¾¶</param>
+    /// <param name="repoName">²Ö¿âÃû³Æ£¬ÓÃÓÚÈÕÖ¾±êÊ¶</param>
     public async Task SyncRepository(string baseUrl, string localPath, string repoName)
     {
-        Logger.Log($"å¼€å§‹åŒæ­¥ {repoName} ä»“åº“...");
+        Logger.Log($"¿ªÊ¼Í¬²½ {repoName} ²Ö¿â...");
 
-        // ç¡®ä¿ç›®å½•å­˜åœ¨
+        // È·±£Ä¿Â¼½á¹¹´æÔÚ
         FileUtils.EnsureDirectory(localPath);
         FileUtils.EnsureDirectory(Path.Combine(localPath, "Packages"));
         FileUtils.EnsureDirectory(Path.Combine(localPath, "repodata"));
 
-        // æ­¥éª¤1: ä¸‹è½½å¹¶è§£æ repomd.xml
-        Logger.Log($"[{repoName}] ä¸‹è½½ repomd.xml...");
+        // ²½Öè1: ÏÂÔØ²¢½âÎö repomd.xml
+        Logger.Log($"[{repoName}] ÏÂÔØ repomd.xml...");
         var repomdUrl = $"{baseUrl.TrimEnd('/')}/repodata/repomd.xml";
         var repomdContent = await _httpClient.GetStringAsync(repomdUrl);
         var repomdDoc = XDocument.Parse(repomdContent);
 
-        // ä¿å­˜ repomd.xml
+        // ±£´æ repomd.xml
         var repomdLocalPath = Path.Combine(localPath, "repodata", "repomd.xml");
         await File.WriteAllTextAsync(repomdLocalPath, repomdContent);
-        Logger.Log($"[{repoName}] repomd.xml å·²ä¿å­˜");
+        Logger.Log($"[{repoName}] repomd.xml ÒÑ±£´æ");
 
-        // æ­¥éª¤2: ä¸‹è½½æ‰€æœ‰å…ƒæ•°æ®æ–‡ä»¶ï¼ˆprimary, filelists, other, comps ç­‰ï¼‰
+        // ²½Öè2: ÏÂÔØËùÓĞÔªÊı¾İÎÄ¼ş£¨primary, filelists, other, comps µÈ£©
         await DownloadMetadataFiles(repomdDoc, baseUrl, localPath, repoName);
 
-        // æ­¥éª¤3: ä» primary.xml ä¸­è§£æåŒ…åˆ—è¡¨
+        // ²½Öè3: ´Ó primary.xml ½âÎöÈí¼ş°üÁĞ±í
         var primaryHref = GetDataHref(repomdDoc, "primary");
         if (primaryHref == null)
         {
-            Logger.Log($"[{repoName}] è­¦å‘Š: æ— æ³•æ‰¾åˆ° primary å…ƒæ•°æ®");
+            Logger.Log($"[{repoName}] ¾¯¸æ: ÕÒ²»µ½ primary Êı¾İÎÄ¼ş");
             return;
         }
 
         var primaryLocalPath = Path.Combine(localPath, primaryHref);
         if (!File.Exists(primaryLocalPath))
         {
-            Logger.Log($"[{repoName}] è­¦å‘Š: primary å…ƒæ•°æ®æ–‡ä»¶ä¸å­˜åœ¨");
+            Logger.Log($"[{repoName}] ¾¯¸æ: primary Êı¾İÎÄ¼ş²»´æÔÚÓÚ±¾µØ");
             return;
         }
 
-        Logger.Log($"[{repoName}] è§£æåŒ…åˆ—è¡¨...");
+        Logger.Log($"[{repoName}] ½âÎö°üÁĞ±í...");
         var packages = ParsePrimaryXml(primaryLocalPath);
-        Logger.Log($"[{repoName}] å…±å‘ç° {packages.Count} ä¸ªåŒ…");
+        Logger.Log($"[{repoName}] ¹²·¢ÏÖ {packages.Count} ¸ö°ü");
 
-        // æ­¥éª¤4: ä¸‹è½½ç¼ºå¤±çš„ RPM åŒ…
+        // ²½Öè4: ÏÂÔØÈ±Ê§µÄ RPM °ü
         await DownloadPackages(packages, baseUrl, localPath, repoName);
 
-        Logger.Log($"[{repoName}] åŒæ­¥å®Œæˆ");
+        Logger.Log($"[{repoName}] Í¬²½Íê³É");
     }
 
     /// <summary>
-    /// ä¸‹è½½ repomd.xml ä¸­å¼•ç”¨çš„æ‰€æœ‰å…ƒæ•°æ®æ–‡ä»¶
+    /// ÏÂÔØ repomd.xml ÖĞÒıÓÃµÄËùÓĞÔªÊı¾İÎÄ¼ş
     /// </summary>
     private async Task DownloadMetadataFiles(XDocument repomd, string baseUrl, string localPath, string repoName)
     {
@@ -104,7 +106,7 @@ public class RepoSyncer
             var remoteUrl = $"{baseUrl.TrimEnd('/')}/{href}";
             var localFile = Path.Combine(localPath, href.Replace('/', Path.DirectorySeparatorChar));
 
-            // æ£€æŸ¥æ˜¯å¦å·²å­˜åœ¨ä¸”æ ¡éªŒå’ŒåŒ¹é…
+            // Èç¹ûÎÄ¼şÒÑ´æÔÚÇÒĞ£ÑéºÍÆ¥ÅäÔòÌø¹ı
             var checksumElement = dataElement.Element(RepoNs + "checksum");
             var expectedChecksum = checksumElement?.Value;
 
@@ -113,12 +115,12 @@ public class RepoSyncer
                 var localChecksum = FileUtils.ComputeSha256(localFile);
                 if (localChecksum == expectedChecksum)
                 {
-                    Logger.Log($"[{repoName}] å…ƒæ•°æ® {type} å·²æ˜¯æœ€æ–°ï¼Œè·³è¿‡");
+                    Logger.Log($"[{repoName}] Êı¾İÎÄ¼ş {type} ÒÑÊÇ×îĞÂ£¬Ìø¹ı");
                     continue;
                 }
             }
 
-            Logger.Log($"[{repoName}] ä¸‹è½½å…ƒæ•°æ®: {type} ({href})");
+            Logger.Log($"[{repoName}] ÏÂÔØÔªÊı¾İ: {type} ({href})");
             FileUtils.EnsureDirectory(Path.GetDirectoryName(localFile)!);
 
             try
@@ -128,12 +130,12 @@ public class RepoSyncer
             }
             catch (Exception ex)
             {
-                Logger.Log($"[{repoName}] è­¦å‘Š: ä¸‹è½½ {type} å¤±è´¥: {ex.Message}");
+                Logger.Log($"[{repoName}] ¾¯¸æ: ÏÂÔØ {type} Ê§°Ü: {ex.Message}");
             }
         }
 
-        // ä¸‹è½½ comps.xmlï¼ˆå¦‚æœåœ¨ repomd åŒçº§ç›®å½•æœ‰ comps æ–‡ä»¶çš„å¼•ç”¨ï¼‰
-        // æŸäº›ä»“åº“çš„ comps æ–‡ä»¶ä¸åœ¨ repodata ç›®å½•ä¸‹
+        // ÏÂÔØ comps.xml£¨Èç¹ûÓĞ£©£¬ÓĞĞ© repomd ÖĞµÄ comps ÎÄ¼ş²»ÔÚ repodata Ä¿Â¼ÏÂ
+        // ĞèÒª¶îÍâ´¦ÀíÎ»ÓÚ repodata Ä¿Â¼ÍâµÄ comps ÎÄ¼ş
         var groupElement = repomd.Root?.Elements(RepoNs + "data")
             .FirstOrDefault(e => e.Attribute("type")?.Value == "group");
         if (groupElement != null)
@@ -145,7 +147,7 @@ public class RepoSyncer
                 var localFile = Path.Combine(localPath, groupHref.Replace('/', Path.DirectorySeparatorChar));
                 if (!File.Exists(localFile))
                 {
-                    Logger.Log($"[{repoName}] ä¸‹è½½ comps/group æ–‡ä»¶: {groupHref}");
+                    Logger.Log($"[{repoName}] ÏÂÔØ comps/group ÎÄ¼ş: {groupHref}");
                     FileUtils.EnsureDirectory(Path.GetDirectoryName(localFile)!);
                     try
                     {
@@ -154,7 +156,7 @@ public class RepoSyncer
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log($"[{repoName}] è­¦å‘Š: ä¸‹è½½ comps å¤±è´¥: {ex.Message}");
+                        Logger.Log($"[{repoName}] ¾¯¸æ: ÏÂÔØ comps Ê§°Ü: {ex.Message}");
                     }
                 }
             }
@@ -162,7 +164,7 @@ public class RepoSyncer
     }
 
     /// <summary>
-    /// ä» repomd.xml ä¸­è·å–æŒ‡å®šç±»å‹çš„æ•°æ®æ–‡ä»¶è·¯å¾„
+    /// ´Ó repomd.xml »ñÈ¡Ö¸¶¨ÀàĞÍÊı¾İÎÄ¼şµÄÂ·¾¶
     /// </summary>
     private string? GetDataHref(XDocument repomd, string dataType)
     {
@@ -174,14 +176,14 @@ public class RepoSyncer
     }
 
     /// <summary>
-    /// è§£æ primary.xml(.gz/.xz) æ–‡ä»¶ï¼Œæå–æ‰€æœ‰åŒ…ä¿¡æ¯
-    /// è¿™æ˜¯ reposync çš„æ ¸å¿ƒåŠŸèƒ½ä¹‹ä¸€
+    /// ½âÎö primary.xml(.gz/.xz) ÎÄ¼ş£¬ÌáÈ¡ËùÓĞÈí¼ş°üĞÅÏ¢¡£
+    /// Ïàµ±ÓÚ reposync ÄÚ²¿µÄ°üÁĞ±í½âÎöÂß¼­¡£
     /// </summary>
     private List<RpmPackageInfo> ParsePrimaryXml(string primaryPath)
     {
         var packages = new List<RpmPackageInfo>();
 
-        // æ ¹æ®æ–‡ä»¶æ‰©å±•åé€‰æ‹©è§£å‹æ–¹å¼
+        // ¸ù¾İÎÄ¼şÀ©Õ¹ÃûÑ¡Ôñ½âÑ¹Á÷
         Stream xmlStream;
         Stream fileStream = File.OpenRead(primaryPath);
 
@@ -214,7 +216,7 @@ public class RepoSyncer
                 info.Packager = pkg.Element(CommonNs + "packager")?.Value ?? "";
                 info.Url = pkg.Element(CommonNs + "url")?.Value ?? "";
 
-                // ç‰ˆæœ¬ä¿¡æ¯
+                // °æ±¾ĞÅÏ¢
                 var versionEl = pkg.Element(CommonNs + "version");
                 if (versionEl != null)
                 {
@@ -223,7 +225,7 @@ public class RepoSyncer
                     info.Release = versionEl.Attribute("rel")?.Value ?? "";
                 }
 
-                // æ ¡éªŒå’Œ
+                // Ğ£ÑéºÍ
                 var checksumEl = pkg.Element(CommonNs + "checksum");
                 if (checksumEl != null)
                 {
@@ -231,11 +233,11 @@ public class RepoSyncer
                     info.ChecksumType = checksumEl.Attribute("type")?.Value ?? "sha256";
                 }
 
-                // ä½ç½®ï¼ˆåŒ…çš„ç›¸å¯¹è·¯å¾„ï¼‰
+                // ÎÄ¼şÎ»ÖÃ£¨Ïà¶ÔÓÚ²Ö¿â¸ùÄ¿Â¼µÄÂ·¾¶£©
                 var locationEl = pkg.Element(CommonNs + "location");
                 info.LocationHref = locationEl?.Attribute("href")?.Value ?? "";
 
-                // å¤§å°ä¿¡æ¯
+                // ´óĞ¡ĞÅÏ¢
                 var sizeEl = pkg.Element(CommonNs + "size");
                 if (sizeEl != null)
                 {
@@ -244,7 +246,7 @@ public class RepoSyncer
                     info.ArchiveSize = long.TryParse(sizeEl.Attribute("archive")?.Value, out var arc) ? arc : 0;
                 }
 
-                // æ—¶é—´ä¿¡æ¯
+                // Ê±¼äĞÅÏ¢
                 var timeEl = pkg.Element(CommonNs + "time");
                 if (timeEl != null)
                 {
@@ -252,7 +254,7 @@ public class RepoSyncer
                     info.BuildTime = long.TryParse(timeEl.Attribute("build")?.Value, out var bt) ? bt : 0;
                 }
 
-                // æ ¼å¼ä¿¡æ¯
+                // ¸ñÊ½ĞÅÏ¢
                 var formatEl = pkg.Element(CommonNs + "format");
                 if (formatEl != null)
                 {
@@ -283,12 +285,12 @@ public class RepoSyncer
     }
 
     /// <summary>
-    /// å¹¶å‘ä¸‹è½½ RPM åŒ…ï¼Œè·³è¿‡å·²å­˜åœ¨ä¸”æ ¡éªŒé€šè¿‡çš„æ–‡ä»¶
-    /// æ›¿ä»£ reposync çš„æ ¸å¿ƒä¸‹è½½åŠŸèƒ½
+    /// ²¢·¢ÏÂÔØ RPM Èí¼ş°ü£¬ÒÑ´æÔÚÇÒ´óĞ¡Æ¥ÅäµÄÎÄ¼ş½«±»Ìø¹ı¡£
+    /// ÓÅÏÈ³¢ÊÔ´Ó±¾µØÎÄ¼ş»º´æÖĞ²éÕÒ checksum Æ¥ÅäµÄÎÄ¼ş½øĞĞ¸´ÖÆ£¬±ÜÃâÖØ¸´ÍøÂçÏÂÔØ¡£
     /// </summary>
     private async Task DownloadPackages(List<RpmPackageInfo> packages, string baseUrl, string localPath, string repoName)
     {
-        // ç­›é€‰éœ€è¦ä¸‹è½½çš„åŒ…
+        // É¸Ñ¡³öĞèÒªÏÂÔØµÄ°ü
         var toDownload = new List<RpmPackageInfo>();
         int skipped = 0;
 
@@ -297,7 +299,7 @@ public class RepoSyncer
             var localFile = Path.Combine(localPath, pkg.LocationHref.Replace('/', Path.DirectorySeparatorChar));
             if (File.Exists(localFile))
             {
-                // æ£€æŸ¥æ–‡ä»¶å¤§å°æ˜¯å¦åŒ¹é…
+                // Èç¹ûÎÄ¼şÒÑ´æÔÚÇÒ´óĞ¡Æ¥ÅäÔòÌø¹ı
                 var fileInfo = new FileInfo(localFile);
                 if (fileInfo.Length == pkg.PackageSize)
                 {
@@ -308,13 +310,14 @@ public class RepoSyncer
             toDownload.Add(pkg);
         }
 
-        Logger.Log($"[{repoName}] éœ€è¦ä¸‹è½½: {toDownload.Count} ä¸ªåŒ…ï¼Œè·³è¿‡: {skipped} ä¸ªå·²å­˜åœ¨çš„åŒ…");
+        Logger.Log($"[{repoName}] ĞèÒª´¦Àí: {toDownload.Count} ¸ö°ü´ıÏÂÔØ, {skipped} ¸öÒÑ´æÔÚÌø¹ı");
 
         if (toDownload.Count == 0) return;
 
-        // ä½¿ç”¨ SemaphoreSlim æ§åˆ¶å¹¶å‘æ•°
+        // Ê¹ÓÃ SemaphoreSlim ¿ØÖÆ²¢·¢Êı
         var semaphore = new SemaphoreSlim(_maxConcurrent);
         int downloaded = 0;
+        int copiedLocal = 0;
         int failed = 0;
         var lockObj = new object();
 
@@ -323,22 +326,46 @@ public class RepoSyncer
             await semaphore.WaitAsync();
             try
             {
-                var remoteUrl = $"{baseUrl.TrimEnd('/')}/{pkg.LocationHref}";
                 var localFile = Path.Combine(localPath, pkg.LocationHref.Replace('/', Path.DirectorySeparatorChar));
                 FileUtils.EnsureDirectory(Path.GetDirectoryName(localFile)!);
 
-                // ä¸‹è½½æ–‡ä»¶
+                // ÏÈ³¢ÊÔ´Ó±¾µØ»º´æ²éÕÒÏàÍ¬ checksum µÄÎÄ¼ş
+                var cachedFile = _localCache.FindMatchingFile(pkg.PackageSize, pkg.Checksum, pkg.ChecksumType);
+                if (cachedFile != null && cachedFile != localFile)
+                {
+                    // ÕÒµ½±¾µØÆ¥ÅäÎÄ¼ş£¬Ö±½Ó¸´ÖÆ¶ø·ÇÏÂÔØ
+                    File.Copy(cachedFile, localFile, overwrite: true);
+                    _localCache.RegisterFile(localFile);
+
+                    lock (lockObj)
+                    {
+                        copiedLocal++;
+                        var total = downloaded + copiedLocal;
+                        if (total % 100 == 0)
+                        {
+                            Logger.Log($"[{repoName}] ½ø¶È: {total}/{toDownload.Count} (±¾µØ¸´ÖÆ: {copiedLocal}, ÍøÂçÏÂÔØ: {downloaded})");
+                        }
+                    }
+                    return;
+                }
+
+                // ±¾µØ»º´æÎ´ÃüÖĞ£¬´ÓÔ¶³ÌÏÂÔØ
+                var remoteUrl = $"{baseUrl.TrimEnd('/')}/{pkg.LocationHref}";
                 var response = await _httpClient.GetAsync(remoteUrl);
                 response.EnsureSuccessStatusCode();
                 var data = await response.Content.ReadAsByteArrayAsync();
                 await File.WriteAllBytesAsync(localFile, data);
 
+                // ½«ĞÂÏÂÔØµÄÎÄ¼ş×¢²áµ½»º´æË÷Òı£¬¹©ºóĞø²Ö¿âÍ¬²½Ê±¸´ÓÃ
+                _localCache.RegisterFile(localFile);
+
                 lock (lockObj)
                 {
                     downloaded++;
-                    if (downloaded % 50 == 0 || downloaded == toDownload.Count)
+                    var total = downloaded + copiedLocal;
+                    if (total % 50 == 0 || total == toDownload.Count)
                     {
-                        Logger.Log($"[{repoName}] ä¸‹è½½è¿›åº¦: {downloaded}/{toDownload.Count}");
+                        Logger.Log($"[{repoName}] ½ø¶È: {total}/{toDownload.Count} (±¾µØ¸´ÖÆ: {copiedLocal}, ÍøÂçÏÂÔØ: {downloaded})");
                     }
                 }
             }
@@ -348,7 +375,7 @@ public class RepoSyncer
                 {
                     failed++;
                 }
-                Logger.Log($"[{repoName}] ä¸‹è½½å¤±è´¥: {pkg.Name} - {ex.Message}");
+                Logger.Log($"[{repoName}] ÏÂÔØÊ§°Ü: {pkg.Name} - {ex.Message}");
             }
             finally
             {
@@ -358,6 +385,6 @@ public class RepoSyncer
 
         await Task.WhenAll(tasks);
 
-        Logger.Log($"[{repoName}] ä¸‹è½½å®Œæˆ - æˆåŠŸ: {downloaded}, å¤±è´¥: {failed}");
+        Logger.Log($"[{repoName}] Íê³É - ÍøÂçÏÂÔØ: {downloaded}, ±¾µØ¸´ÖÆ: {copiedLocal}, Ê§°Ü: {failed}");
     }
 }

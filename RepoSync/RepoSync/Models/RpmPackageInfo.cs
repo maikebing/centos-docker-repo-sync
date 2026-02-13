@@ -1,17 +1,17 @@
 namespace RepoSync.Models;
 
 /// <summary>
-/// ä» primary.xml è§£æå‡ºçš„ RPM åŒ…ä¿¡æ¯
+/// ´Ó primary.xml ½âÎö³öµÄ RPM °üĞÅÏ¢
 /// </summary>
 public class RpmPackageInfo
 {
-    /// <summary>åŒ…å</summary>
+    /// <summary>°üÃû</summary>
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>æ¶æ„</summary>
+    /// <summary>¼Ü¹¹</summary>
     public string Arch { get; set; } = string.Empty;
 
-    /// <summary>ç‰ˆæœ¬å·</summary>
+    /// <summary>°æ±¾ºÅ</summary>
     public string Version { get; set; } = string.Empty;
 
     /// <summary>Release</summary>
@@ -20,57 +20,57 @@ public class RpmPackageInfo
     /// <summary>Epoch</summary>
     public string Epoch { get; set; } = "0";
 
-    /// <summary>ç›¸å¯¹äº baseurl çš„åŒ…è·¯å¾„ï¼ˆå¦‚ Packages/xxx.rpmï¼‰</summary>
+    /// <summary>Ïà¶ÔÓÚ baseurl µÄÎÄ¼şÂ·¾¶£¬Èç Packages/xxx.rpm</summary>
     public string LocationHref { get; set; } = string.Empty;
 
-    /// <summary>åŒ…å¤§å°ï¼ˆå­—èŠ‚ï¼‰</summary>
+    /// <summary>°üÎÄ¼ş´óĞ¡£¨×Ö½Ú£©</summary>
     public long PackageSize { get; set; }
 
-    /// <summary>åŒ…çš„ SHA256 æ ¡éªŒå’Œ</summary>
+    /// <summary>°üµÄ SHA256 Ğ£ÑéºÍ</summary>
     public string Checksum { get; set; } = string.Empty;
 
-    /// <summary>æ ¡éªŒå’Œç±»å‹ï¼ˆsha256 ç­‰ï¼‰</summary>
+    /// <summary>Ğ£ÑéºÍÀàĞÍ£¬Èç sha256 µÈ</summary>
     public string ChecksumType { get; set; } = "sha256";
 
-    /// <summary>Summary æè¿°</summary>
+    /// <summary>Summary ÕªÒª</summary>
     public string Summary { get; set; } = string.Empty;
 
-    /// <summary>å®Œæ•´æè¿°</summary>
+    /// <summary>ÏêÏ¸ÃèÊö</summary>
     public string Description { get; set; } = string.Empty;
 
-    /// <summary>æ‰“åŒ…è€…/ä¾›åº”å•†</summary>
+    /// <summary>´ò°üÕß/Î¬»¤Õß</summary>
     public string Packager { get; set; } = string.Empty;
 
     /// <summary>URL</summary>
     public string Url { get; set; } = string.Empty;
 
-    /// <summary>æ„å»ºæ—¶é—´ï¼ˆUnix æ—¶é—´æˆ³ï¼‰</summary>
+    /// <summary>¹¹½¨Ê±¼ä£¨Unix Ê±¼ä´Á£©</summary>
     public long BuildTime { get; set; }
 
-    /// <summary>å®‰è£…åå¤§å°</summary>
+    /// <summary>°²×°ºó´óĞ¡</summary>
     public long InstalledSize { get; set; }
 
-    /// <summary>å­˜æ¡£å¤§å°</summary>
+    /// <summary>¹éµµ´óĞ¡</summary>
     public long ArchiveSize { get; set; }
 
-    /// <summary>è®¸å¯è¯</summary>
+    /// <summary>Ğí¿ÉÖ¤</summary>
     public string License { get; set; } = string.Empty;
 
-    /// <summary>ä¾›åº”å•†</summary>
+    /// <summary>³§ÉÌ/Î¬»¤Õß</summary>
     public string Vendor { get; set; } = string.Empty;
 
-    /// <summary>åˆ†ç»„</summary>
+    /// <summary>·Ö×é</summary>
     public string Group { get; set; } = string.Empty;
 
-    /// <summary>æº RPM åç§°</summary>
+    /// <summary>Ô´ RPM °üÃû</summary>
     public string SourceRpm { get; set; } = string.Empty;
 
-    /// <summary>Header èŒƒå›´èµ·å§‹</summary>
+    /// <summary>Header ÆğÊ¼Æ«ÒÆ</summary>
     public long HeaderStart { get; set; }
 
-    /// <summary>Header èŒƒå›´ç»“æŸ</summary>
+    /// <summary>Header ½áÊøÆ«ÒÆ</summary>
     public long HeaderEnd { get; set; }
 
-    /// <summary>æ–‡ä»¶ä¿®æ”¹æ—¶é—´æˆ³</summary>
+    /// <summary>ÎÄ¼şĞŞ¸ÄÊ±¼ä´Á</summary>
     public long FileTime { get; set; }
 }

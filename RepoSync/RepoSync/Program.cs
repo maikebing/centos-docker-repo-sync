@@ -1,9 +1,9 @@
-using System.Text;
+﻿using System.Text;
 using RepoSync;
 using RepoSync.Models;
 using RepoSync.Services;
 
-// 强制标准输出使用 UTF-8 编码（无 BOM），避免 Docker 容器中中文乱码
+// 强制设置控制台为 UTF-8 编码（不带 BOM），确保 Docker 容器内日志输出正确
 var utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 Console.OutputEncoding = utf8NoBom;
 Console.InputEncoding = utf8NoBom;
@@ -15,7 +15,7 @@ Console.SetError(new StreamWriter(Console.OpenStandardError(), utf8NoBom) { Auto
 // C# 实现 - 替代 sync-repos.sh
 // ==========================================
 //
-// 对应关系:
+// 功能映射:
 // - shell: log()                   -> Logger.Log()
 // - shell: check_repomd_changed()  -> RepomdChecker.HasChanged()
 // - shell: reposync                -> RepoSyncer.SyncRepository()
@@ -30,14 +30,14 @@ Console.SetError(new StreamWriter(Console.OpenStandardError(), utf8NoBom) { Auto
 
 Logger.Log("CentOS 仓库同步工具 (C# 版) 启动");
 
-// 配置（对应 shell 脚本中的变量定义部分）
+// 配置定义，对应 shell 脚本中的变量定义
 var config = new SyncConfig
 {
-    SyncIntervalSeconds = 86400, // 每天执行一次（对应 SYNC_INTERVAL=86400）
-    MaxConcurrentDownloads = 5,  // 并发下载数（shell 的 reposync 默认是串行）
+    SyncIntervalSeconds = 86400, // 每天同步一次，对应 SYNC_INTERVAL=86400
+    MaxConcurrentDownloads = 5,  // 并发下载数，shell 版 reposync 默认串行下载
     HttpTimeoutSeconds = 300,
 
-    // CentOS 7.9.2009 仓库（对应 REPO_MAP 和 REPO_URL）
+    // CentOS 7.9.2009 仓库，对应 REPO_MAP 和 REPO_URL
     CentOSRepos = new List<RepoDefinition>
     {
         new()
@@ -77,13 +77,13 @@ var config = new SyncConfig
     }
 };
 
-// 支持命令行参数覆盖
+// 解析命令行参数
 if (args.Length > 0)
 {
     switch (args[0].ToLower())
     {
         case "--once":
-            // 只执行一次同步，不循环
+            // 单次同步模式，执行完毕后立即退出
             Logger.Log("模式: 单次同步");
             var onceOrchestrator = new SyncOrchestrator(config);
             await onceOrchestrator.RunOnce();
@@ -91,34 +91,34 @@ if (args.Length > 0)
 
         case "--interval" when args.Length > 1 && int.TryParse(args[1], out var interval):
             config.SyncIntervalSeconds = interval;
-            Logger.Log($"同步间隔设置为 {interval} 秒");
+            Logger.Log($"同步间隔已设置为 {interval} 秒");
             break;
 
         case "--concurrency" when args.Length > 1 && int.TryParse(args[1], out var concurrency):
             config.MaxConcurrentDownloads = concurrency;
-            Logger.Log($"并发下载数设置为 {concurrency}");
+            Logger.Log($"并发下载数已设置为 {concurrency}");
             break;
 
         case "--help":
             Console.WriteLine("用法: RepoSync [选项]");
             Console.WriteLine();
             Console.WriteLine("选项:");
-            Console.WriteLine("  --once              只执行一次同步，不循环");
-            Console.WriteLine("  --interval <秒>     设置同步间隔（默认 86400 秒）");
-            Console.WriteLine("  --concurrency <数>  设置并发下载数（默认 5）");
-            Console.WriteLine("  --help              显示帮助信息");
+            Console.WriteLine("  --once              单次同步模式，执行完毕后立即退出");
+            Console.WriteLine("  --interval <秒>     设置同步间隔（默认 86400 秒即一天）");
+            Console.WriteLine("  --concurrency <数>  设置最大并发下载数（默认 5）");
+            Console.WriteLine("  --help              显示此帮助信息");
             return;
     }
 }
 
-// 启动循环同步（对应 shell: while true; do ... done）
+// 启动循环同步，对应 shell: while true; do ... done
 using var cts = new CancellationTokenSource();
 
-// 处理 Ctrl+C 优雅退出
+// 捕获 Ctrl+C 信号优雅退出
 Console.CancelKeyPress += (_, e) =>
 {
     e.Cancel = true;
-    Logger.Log("收到退出信号，正在优雅停止...");
+    Logger.Log("收到中断信号，正在优雅停止...");
     cts.Cancel();
 };
 

@@ -3,7 +3,7 @@ using System.Security.Cryptography;
 namespace RepoSync.Services;
 
 /// <summary>
-/// éƒãƒ¥ç¹”éˆå¶…å§Ÿ - ç€µç‘°ç°² shell é‘´æ°­æ¹°æ¶“î… æ®‘ log() é‘èŠ¥æšŸ
+/// ÈÕÖ¾¹¤¾ßÀà - ¶ÔÓ¦ shell ½Å±¾ÖĞµÄ log() º¯Êı
 /// </summary>
 public static class Logger
 {
@@ -26,12 +26,12 @@ public static class Logger
 }
 
 /// <summary>
-/// é‚å›¦æ¬¢å®¸ãƒ¥å¿ - ç€µç‘°ç°² shell é‘´æ°­æ¹°æ¶“î… æ®‘ md5suméŠ†ä¹¨u ç»›å¤‹æ·æµ£?
+/// ÎÄ¼ş¹¤¾ßÀà - ¶ÔÓ¦ shell ½Å±¾ÖĞµÄ md5sum¡¢du -sh µÈÃüÁî
 /// </summary>
 public static class FileUtils
 {
     /// <summary>
-    /// ç’ï¼„ç•»é‚å›¦æ¬¢ MD5é”›å î‡®æ´?md5sum é›æˆ’æŠ¤é”›?
+    /// ¼ÆËãÎÄ¼şµÄ MD5 Ğ£ÑéºÍ£¬¶ÔÓ¦ md5sum ÃüÁî
     /// </summary>
     public static string ComputeMd5(string filePath)
     {
@@ -42,7 +42,7 @@ public static class FileUtils
     }
 
     /// <summary>
-    /// ç’ï¼„ç•»é‚å›¦æ¬¢ SHA256
+    /// ¼ÆËãÎÄ¼şµÄ SHA256 Ğ£ÑéºÍ
     /// </summary>
     public static string ComputeSha256(string filePath)
     {
@@ -53,12 +53,12 @@ public static class FileUtils
     }
 
     /// <summary>
-    /// ç’ï¼„ç•»é©î†¼ç¶æ¾¶Ñƒçš¬é”›å î‡®æ´?du -sh é›æˆ’æŠ¤é”›?
+    /// ¼ÆËãÄ¿Â¼×Ü´óĞ¡²¢¸ñÊ½»¯Êä³ö£¬¶ÔÓ¦ du -sh ÃüÁî
     /// </summary>
     public static string GetDirectorySize(string path)
     {
         if (!Directory.Exists(path))
-            return "é©î†¼ç¶æ¶“è™¹â”–";
+            return "Ä¿Â¼²»´æÔÚ";
 
         try
         {
@@ -68,12 +68,12 @@ public static class FileUtils
         }
         catch
         {
-            return "é©î†¼ç¶æ¶“è™¹â”–";
+            return "Ä¿Â¼²»´æÔÚ";
         }
     }
 
     /// <summary>
-    /// éç…ç´¡é–æ ¨æƒæµ è·ºã‡çå¿è´Ÿæµœè™¹è¢«é™îˆî‡°éç…ç´¡
+    /// ½«×Ö½ÚÊı×ª»»ÎªÈËÀà¿É¶ÁµÄ´óĞ¡¸ñÊ½£¨Èç 1.5G¡¢256M£©
     /// </summary>
     public static string FormatSize(long bytes)
     {
@@ -89,7 +89,7 @@ public static class FileUtils
     }
 
     /// <summary>
-    /// çº­î†»ç¹šé©î†¼ç¶ç€›æ¨ºæ¹ªé”›å î‡®æ´?mkdir -pé”›?
+    /// È·±£Ä¿Â¼´æÔÚ£¬²»´æÔÚÔò´´½¨£¬¶ÔÓ¦ mkdir -p
     /// </summary>
     public static void EnsureDirectory(string path)
     {

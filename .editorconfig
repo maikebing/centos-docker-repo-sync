@@ -1,0 +1,31 @@
+# EditorConfig - 统一编码设置，防止 VS 以 GBK 保存文件
+# https://editorconfig.org
+
+root = true
+
+[*]
+indent_style = space
+indent_size = 4
+end_of_line = lf
+charset = utf-8-bom
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.cs]
+charset = utf-8-bom
+
+[*.{xml,csproj,props,targets}]
+indent_size = 2
+
+[*.{json,yml,yaml}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.sh]
+end_of_line = lf
+charset = utf-8
+
+[Dockerfile]
+charset = utf-8
