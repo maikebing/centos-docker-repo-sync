@@ -292,13 +292,18 @@ public class RepoSyncer
     /// </summary>
     private async Task DownloadPackages(List<RpmPackageInfo> packages, string baseUrl, string localPath, string repoName)
     {
-        // 筛选出需要下载的包：基于大小+checksum 双重校验
-        var toDownload = new List<RpmPackageInfo>();
+        // 筛选出需要下载的包：基于大小+checksum 双重校验（多线程并行校验）
+        var toDownload = new System.Collections.Concurrent.ConcurrentBag<RpmPackageInfo>();
         int skipped = 0;
         int corrupted = 0;
+        int checked_ = 0;
+        int totalPackages = packages.Count;
 
-        foreach (var pkg in packages)
+        Logger.Log($"[{repoName}] 开始并行校验本地文件 (线程数: {Environment.ProcessorCount})...");
+
+        Parallel.ForEach(packages, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, pkg =>
         {
+            var current = Interlocked.Increment(ref checked_);
             var localFile = Path.Combine(localPath, pkg.LocationHref.Replace('/', Path.DirectorySeparatorChar));
             if (File.Exists(localFile))
             {
@@ -308,45 +313,48 @@ public class RepoSyncer
                     // 大小匹配，进一步校验 checksum 确保文件完整
                     if (!string.IsNullOrEmpty(pkg.Checksum))
                     {
-                        Logger.Log($"[{repoName}] 正在校验: {pkg.Name} ({Path.GetFileName(localFile)})");
+                        Logger.Log($"[{repoName}] 正在校验 ({current}/{totalPackages}): {pkg.Name} ({Path.GetFileName(localFile)})");
                         var localChecksum = ComputeChecksum(localFile, pkg.ChecksumType);
                         if (localChecksum == pkg.Checksum)
                         {
-                            skipped++;
-                            continue;
+                            Interlocked.Increment(ref skipped);
+                            return;
                         }
                         else
                         {
                             // 大小一致但 checksum 不匹配，文件可能损坏（如断电导致），需要重新下载
-                            corrupted++;
+                            Interlocked.Increment(ref corrupted);
                             Logger.Log($"[{repoName}] 文件损坏(校验和不匹配): {pkg.Name}，将重新下载");
                         }
                     }
                     else
                     {
                         // 没有 checksum 信息时仅按大小判断
-                        skipped++;
-                        continue;
+                        Interlocked.Increment(ref skipped);
+                        return;
                     }
                 }
                 // 大小不匹配，说明文件不完整，需要重新下载
             }
             toDownload.Add(pkg);
-        }
+        });
 
-        Logger.Log($"[{repoName}] 需要处理: {toDownload.Count} 个包待下载, {skipped} 个已存在跳过" +
+        var toDownloadList = toDownload.ToList();
+
+        Logger.Log($"[{repoName}] 需要处理: {toDownloadList.Count} 个包待下载, {skipped} 个已存在跳过" +
                    (corrupted > 0 ? $", {corrupted} 个损坏将重新下载" : ""));
 
-        if (toDownload.Count == 0) return;
+        if (toDownloadList.Count == 0) return;
 
         // 使用 SemaphoreSlim 控制并发数
+        Logger.Log($"[{repoName}] 并发下载线程数: {_maxConcurrent}");
         var semaphore = new SemaphoreSlim(_maxConcurrent);
         int downloaded = 0;
         int copiedLocal = 0;
         int failed = 0;
         var lockObj = new object();
 
-        var tasks = toDownload.Select(async pkg =>
+        var tasks = toDownloadList.Select(async pkg =>
         {
             await semaphore.WaitAsync();
             try
@@ -368,7 +376,7 @@ public class RepoSyncer
                         var total = downloaded + copiedLocal;
                         if (total % 100 == 0)
                         {
-                            Logger.Log($"[{repoName}] 进度: {total}/{toDownload.Count} (本地复制: {copiedLocal}, 网络下载: {downloaded})");
+                            Logger.Log($"[{repoName}] 进度: {total}/{toDownloadList.Count} (本地复制: {copiedLocal}, 网络下载: {downloaded})");
                         }
                     }
                     return;
@@ -407,9 +415,9 @@ public class RepoSyncer
                 {
                     downloaded++;
                     var total = downloaded + copiedLocal;
-                    if (total % 50 == 0 || total == toDownload.Count)
+                    if (total % 50 == 0 || total == toDownloadList.Count)
                     {
-                        Logger.Log($"[{repoName}] 进度: {total}/{toDownload.Count} (本地复制: {copiedLocal}, 网络下载: {downloaded})");
+                        Logger.Log($"[{repoName}] 进度: {total}/{toDownloadList.Count} (本地复制: {copiedLocal}, 网络下载: {downloaded})");
                     }
                 }
             }

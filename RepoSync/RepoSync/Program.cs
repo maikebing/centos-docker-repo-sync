@@ -73,7 +73,7 @@ var config = new SyncConfig
     {
         Name = "EPEL",
         BaseUrl = "https://mirrors.aliyun.com/epel/7/x86_64",
-        LocalPath = "/data/repos/epel/7/epel"
+        LocalPath = "/data/repos/epel/7/x86_64"
     }
 };
 

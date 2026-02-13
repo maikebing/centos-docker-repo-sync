@@ -9,7 +9,7 @@ public class SyncConfig
     public int SyncIntervalSeconds { get; set; } = 86400;
 
     /// <summary>最大并发下载数</summary>
-    public int MaxConcurrentDownloads { get; set; } = 5;
+    public int MaxConcurrentDownloads { get; set; } = Math.Max(Environment.ProcessorCount * 2, 8);
 
     /// <summary>HTTP 请求超时秒数</summary>
     public int HttpTimeoutSeconds { get; set; } = 300;
