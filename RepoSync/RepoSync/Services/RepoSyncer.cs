@@ -308,6 +308,7 @@ public class RepoSyncer
                     // 大小匹配，进一步校验 checksum 确保文件完整
                     if (!string.IsNullOrEmpty(pkg.Checksum))
                     {
+                        Logger.Log($"[{repoName}] 正在校验: {pkg.Name} ({Path.GetFileName(localFile)})");
                         var localChecksum = ComputeChecksum(localFile, pkg.ChecksumType);
                         if (localChecksum == pkg.Checksum)
                         {
