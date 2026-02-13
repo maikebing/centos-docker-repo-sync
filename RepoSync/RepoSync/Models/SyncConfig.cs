@@ -1,40 +1,40 @@
-namespace RepoSync.Models;
+ï»¿namespace RepoSync.Models;
 
 /// <summary>
-/// ²Ö¿âÍ¬²½ÅäÖÃ
+/// ä»“åº“åŒæ­¥é…ç½®
 /// </summary>
 public class SyncConfig
 {
-    /// <summary>Í¬²½¼ä¸ôÃëÊı£¬Ä¬ÈÏ 86400£¨24Ğ¡Ê±£©</summary>
+    /// <summary>åŒæ­¥é—´éš”ç§’æ•°ï¼Œé»˜è®¤ 86400ï¼ˆ24å°æ—¶ï¼‰</summary>
     public int SyncIntervalSeconds { get; set; } = 86400;
 
-    /// <summary>×î´ó²¢·¢ÏÂÔØÊı</summary>
+    /// <summary>æœ€å¤§å¹¶å‘ä¸‹è½½æ•°</summary>
     public int MaxConcurrentDownloads { get; set; } = 5;
 
-    /// <summary>HTTP ÇëÇó³¬Ê±ÃëÊı</summary>
+    /// <summary>HTTP è¯·æ±‚è¶…æ—¶ç§’æ•°</summary>
     public int HttpTimeoutSeconds { get; set; } = 300;
 
-    /// <summary>CentOS ²Ö¿â¶¨ÒåÁĞ±í</summary>
+    /// <summary>CentOS ä»“åº“å®šä¹‰åˆ—è¡¨</summary>
     public List<RepoDefinition> CentOSRepos { get; set; } = new();
 
-    /// <summary>Docker CE ²Ö¿â¶¨Òå</summary>
+    /// <summary>Docker CE ä»“åº“å®šä¹‰</summary>
     public RepoDefinition? DockerRepo { get; set; }
 
-    /// <summary>EPEL ²Ö¿â¶¨Òå</summary>
+    /// <summary>EPEL ä»“åº“å®šä¹‰</summary>
     public RepoDefinition? EpelRepo { get; set; }
 }
 
 /// <summary>
-/// µ¥¸ö²Ö¿âµÄ¶¨ÒåĞÅÏ¢
+/// å•ä¸ªä»“åº“çš„å®šä¹‰ä¿¡æ¯
 /// </summary>
 public class RepoDefinition
 {
-    /// <summary>²Ö¿âÃû³Æ£¬ÓÃÓÚÈÕÖ¾±êÊ¶</summary>
+    /// <summary>ä»“åº“åç§°ï¼Œç”¨äºæ—¥å¿—æ ‡è¯†</summary>
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>Ô¶³Ì²Ö¿â»ù´¡ URL</summary>
+    /// <summary>è¿œç¨‹ä»“åº“åŸºç¡€ URL</summary>
     public string BaseUrl { get; set; } = string.Empty;
 
-    /// <summary>±¾µØ´æ´¢Â·¾¶</summary>
+    /// <summary>æœ¬åœ°å­˜å‚¨è·¯å¾„</summary>
     public string LocalPath { get; set; } = string.Empty;
 }

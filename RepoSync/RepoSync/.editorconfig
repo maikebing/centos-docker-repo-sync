@@ -1,0 +1,7 @@
+# EditorConfig - 强制 VS 以 UTF-8 BOM 保存 C# 文件
+# https://editorconfig.org
+
+root = false
+
+[*.cs]
+charset = utf-8-bom

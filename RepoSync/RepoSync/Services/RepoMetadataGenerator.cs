@@ -1,4 +1,4 @@
-using System.IO.Compression;
+ï»¿using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
 using System.Xml;
@@ -9,18 +9,18 @@ using SharpCompress.Compressors.Xz;
 namespace RepoSync.Services;
 
 /// <summary>
-/// RPM ²Ö¿âÔªÊı¾İÉú³ÉÆ÷ - Ìæ´ú createrepo ÃüÁî
+/// RPM ä»“åº“å…ƒæ•°æ®ç”Ÿæˆå™¨ - æ›¿ä»£ createrepo å‘½ä»¤
 /// 
-/// createrepo ÄÚ²¿»áÉ¨ÃèÄ¿Â¼ÏÂËùÓĞ RPM ÎÄ¼ş£¬¶ÁÈ¡Ã¿¸öÎÄ¼şµÄ header ĞÅÏ¢£¬
-/// È»ºóÉú³É primary.xml.gz, filelists.xml.gz, other.xml.gz ºÍ repomd.xml¡£
+/// createrepo å†…éƒ¨ä¼šæ‰«æç›®å½•ä¸‹æ‰€æœ‰ RPM æ–‡ä»¶ï¼Œè¯»å–æ¯ä¸ªæ–‡ä»¶çš„ header ä¿¡æ¯ï¼Œ
+/// ç„¶åç”Ÿæˆ primary.xml.gz, filelists.xml.gz, other.xml.gz å’Œ repomd.xmlã€‚
 /// 
-/// ±¾ÊµÏÖ²ÉÓÃ¼ò»¯²ßÂÔ£¬Ö»ÔÚ±ØÒªÊ±ÖØĞÂÉú³ÉÔªÊı¾İ£º
-/// - µ±Ô¶³Ì²Ö¿âÒÑÍ¨¹ı reposync --download-metadata ÏÂÔØÁËÍêÕûÔªÊı¾İÊ±£¬
-///   ±¾Éú³ÉÆ÷½öÑéÖ¤ÔªÊı¾İÍêÕûĞÔ£¬²»»á¸²¸ÇÔ¶³ÌÏÂÔØµÄÔªÊı¾İ¡£
+/// æœ¬å®ç°é‡‡ç”¨ç®€åŒ–ç­–ç•¥ï¼Œåªåœ¨å¿…è¦æ—¶é‡æ–°ç”Ÿæˆå…ƒæ•°æ®ï¼š
+/// - å½“è¿œç¨‹ä»“åº“å·²é€šè¿‡ reposync --download-metadata ä¸‹è½½äº†å®Œæ•´å…ƒæ•°æ®æ—¶ï¼Œ
+///   æœ¬ç”Ÿæˆå™¨ä»…éªŒè¯å…ƒæ•°æ®å®Œæ•´æ€§ï¼Œä¸ä¼šè¦†ç›–è¿œç¨‹ä¸‹è½½çš„å…ƒæ•°æ®ã€‚
 /// 
-/// ±¾ÊµÏÖµÄ¾ÖÏŞĞÔ£º
-/// 1. ÓÅÏÈÊ¹ÓÃÔ¶³ÌÏÂÔØµÄÔªÊı¾İ£¨¸üÍêÕû×¼È·£©
-/// 2. ½öÔÚÔ¶³ÌÔªÊı¾İÈ±Ê§Ê±£¬²Å¸ù¾İ RPM ÎÄ¼şÃûÉú³É»ù´¡ÔªÊı¾İ
+/// æœ¬å®ç°çš„å±€é™æ€§ï¼š
+/// 1. ä¼˜å…ˆä½¿ç”¨è¿œç¨‹ä¸‹è½½çš„å…ƒæ•°æ®ï¼ˆæ›´å®Œæ•´å‡†ç¡®ï¼‰
+/// 2. ä»…åœ¨è¿œç¨‹å…ƒæ•°æ®ç¼ºå¤±æ—¶ï¼Œæ‰æ ¹æ® RPM æ–‡ä»¶åç”ŸæˆåŸºç¡€å…ƒæ•°æ®
 /// </summary>
 public class RepoMetadataGenerator
 {
@@ -29,8 +29,8 @@ public class RepoMetadataGenerator
     private static readonly XNamespace CommonNs = "http://linux.duke.edu/metadata/common";
 
     /// <summary>
-    /// È·±£²Ö¿âÔªÊı¾İÍêÕû£¬¶ÔÓ¦ createrepo --update
-    /// Èç¹ûÒÑÓĞÓĞĞ§µÄÔªÊı¾İºÍ RPM ÎÄ¼şÔòÌø¹ı£¬·ñÔòÖØĞÂÉú³É¡£
+    /// ç¡®ä¿ä»“åº“å…ƒæ•°æ®å®Œæ•´ï¼Œå¯¹åº” createrepo --update
+    /// å¦‚æœå·²æœ‰æœ‰æ•ˆçš„å…ƒæ•°æ®å’Œ RPM æ–‡ä»¶åˆ™è·³è¿‡ï¼Œå¦åˆ™é‡æ–°ç”Ÿæˆã€‚
     /// </summary>
     public async Task EnsureMetadata(string repoPath, string repoName)
     {
@@ -39,22 +39,22 @@ public class RepoMetadataGenerator
 
         if (File.Exists(repomdPath))
         {
-            // ¼ì²âÒÑÓĞÔªÊı¾İÒıÓÃµÄÎÄ¼şÊÇ·ñ¶¼´æÔÚ
+            // æ£€æµ‹å·²æœ‰å…ƒæ•°æ®å¼•ç”¨çš„æ–‡ä»¶æ˜¯å¦éƒ½å­˜åœ¨
             if (ValidateExistingMetadata(repomdPath))
             {
-                Logger.Log($"[{repoName}] ÒÑÓĞÔªÊı¾İÍêÕûÓĞĞ§£¬ÎŞĞèÖØĞÂÉú³É");
+                Logger.Log($"[{repoName}] å·²æœ‰å…ƒæ•°æ®å®Œæ•´æœ‰æ•ˆï¼Œæ— éœ€é‡æ–°ç”Ÿæˆ");
                 return;
             }
         }
 
-        // ĞèÒªÖØĞÂÉú³ÉÔªÊı¾İ
-        Logger.Log($"[{repoName}] ¿ªÊ¼Éú³É²Ö¿âÔªÊı¾İ...");
+        // éœ€è¦é‡æ–°ç”Ÿæˆå…ƒæ•°æ®
+        Logger.Log($"[{repoName}] å¼€å§‹ç”Ÿæˆä»“åº“å…ƒæ•°æ®...");
         await GenerateMetadata(repoPath, repoName);
-        Logger.Log($"[{repoName}] Êı¾İÎÄ¼şÉú³ÉÍê³É");
+        Logger.Log($"[{repoName}] æ•°æ®æ–‡ä»¶ç”Ÿæˆå®Œæˆ");
     }
 
     /// <summary>
-    /// ÑéÖ¤ÒÑÓĞÔªÊı¾İÊÇ·ñÍêÕûÓĞĞ§
+    /// éªŒè¯å·²æœ‰å…ƒæ•°æ®æ˜¯å¦å®Œæ•´æœ‰æ•ˆ
     /// </summary>
     private bool ValidateExistingMetadata(string repomdPath)
     {
@@ -64,7 +64,7 @@ public class RepoMetadataGenerator
             var dataElements = doc.Root?.Elements(RepoNs + "data");
             if (dataElements == null) return false;
 
-            // ¼ì²éËùÓĞÔªÊı¾İÒıÓÃµÄÎÄ¼şÊÇ·ñ¶¼´æÔÚ
+            // æ£€æŸ¥æ‰€æœ‰å…ƒæ•°æ®å¼•ç”¨çš„æ–‡ä»¶æ˜¯å¦éƒ½å­˜åœ¨
             var repoDataDir = Path.GetDirectoryName(repomdPath)!;
             foreach (var data in dataElements)
             {
@@ -75,7 +75,7 @@ public class RepoMetadataGenerator
                 var fullPath = Path.Combine(repoRoot, href.Replace('/', Path.DirectorySeparatorChar));
                 if (!File.Exists(fullPath))
                 {
-                    Logger.Log($"Êı¾İÎÄ¼şÈ±Ê§: {href}");
+                    Logger.Log($"æ•°æ®æ–‡ä»¶ç¼ºå¤±: {href}");
                     return false;
                 }
             }
@@ -89,39 +89,39 @@ public class RepoMetadataGenerator
     }
 
     /// <summary>
-    /// ´Ó RPM ÎÄ¼şÉú³É²Ö¿âÔªÊı¾İ
-    /// Ïàµ±ÓÚ createrepo µÄ¼ò»¯ÊµÏÖ:
-    /// - É¨Ãè Packages/ Ä¿Â¼ÏÂµÄ .rpm ÎÄ¼ş
-    /// - Éú³É primary.xml.gz£¨°üº¬°üÃû¡¢°æ±¾¡¢´óĞ¡¡¢Ğ£ÑéºÍµÈ»ù±¾ĞÅÏ¢£©
-    /// - Éú³É repomd.xml£¨ÔªÊı¾İË÷Òı£©
+    /// ä» RPM æ–‡ä»¶ç”Ÿæˆä»“åº“å…ƒæ•°æ®
+    /// ç›¸å½“äº createrepo çš„ç®€åŒ–å®ç°:
+    /// - æ‰«æ Packages/ ç›®å½•ä¸‹çš„ .rpm æ–‡ä»¶
+    /// - ç”Ÿæˆ primary.xml.gzï¼ˆåŒ…å«åŒ…åã€ç‰ˆæœ¬ã€å¤§å°ã€æ ¡éªŒå’Œç­‰åŸºæœ¬ä¿¡æ¯ï¼‰
+    /// - ç”Ÿæˆ repomd.xmlï¼ˆå…ƒæ•°æ®ç´¢å¼•ï¼‰
     /// 
-    /// ×¢Òâ£º±¾ÊµÏÖÎŞ·¨ÍêÕûÌæ´ú createrepo£¬ÒòÎªĞèÒª¶ÁÈ¡ RPM header ĞÅÏ¢£¬
-    /// µ«¶ÔÓÚ yum »ù±¾¹¦ÄÜÒÑ¹»ÓÃ¡£
+    /// æ³¨æ„ï¼šæœ¬å®ç°æ— æ³•å®Œæ•´æ›¿ä»£ createrepoï¼Œå› ä¸ºéœ€è¦è¯»å– RPM header ä¿¡æ¯ï¼Œ
+    /// ä½†å¯¹äº yum åŸºæœ¬åŠŸèƒ½å·²å¤Ÿç”¨ã€‚
     /// </summary>
     private async Task GenerateMetadata(string repoPath, string repoName)
     {
         var repodataDir = Path.Combine(repoPath, "repodata");
         FileUtils.EnsureDirectory(repodataDir);
 
-        // É¨ÃèËùÓĞ RPM ÎÄ¼ş
+        // æ‰«ææ‰€æœ‰ RPM æ–‡ä»¶
         var rpmFiles = Directory.GetFiles(repoPath, "*.rpm", SearchOption.AllDirectories)
             .Where(f => !f.Contains("repodata"))
             .ToList();
 
-        Logger.Log($"[{repoName}] ·¢ÏÖ {rpmFiles.Count} ¸ö RPM ÎÄ¼ş");
+        Logger.Log($"[{repoName}] å‘ç° {rpmFiles.Count} ä¸ª RPM æ–‡ä»¶");
 
-        // Éú³É primary.xml
+        // ç”Ÿæˆ primary.xml
         var primaryXml = GeneratePrimaryXml(rpmFiles, repoPath);
 
-        // Ñ¹Ëõ±£´æÎª primary.xml.gz
+        // å‹ç¼©ä¿å­˜ä¸º primary.xml.gz
         var primaryGzPath = Path.Combine(repodataDir, "primary.xml.gz");
         await CompressAndSave(primaryXml, primaryGzPath);
 
-        // ¼ÆËãĞ£ÑéºÍ
+        // è®¡ç®—æ ¡éªŒå’Œ
         var primaryGzChecksum = FileUtils.ComputeSha256(primaryGzPath);
         var primaryOpenChecksum = ComputeSha256String(primaryXml);
 
-        // Éú³É repomd.xml
+        // ç”Ÿæˆ repomd.xml
         var repomdXml = GenerateRepomdXml(
             primaryGzPath: "repodata/primary.xml.gz",
             primaryGzChecksum: primaryGzChecksum,
@@ -136,7 +136,7 @@ public class RepoMetadataGenerator
     }
 
     /// <summary>
-    /// Éú³É primary.xml ÄÚÈİ
+    /// ç”Ÿæˆ primary.xml å†…å®¹
     /// </summary>
     private string GeneratePrimaryXml(List<string> rpmFiles, string repoPath)
     {
@@ -151,7 +151,7 @@ public class RepoMetadataGenerator
             var fileName = Path.GetFileNameWithoutExtension(rpmFile);
             var checksum = FileUtils.ComputeSha256(rpmFile);
 
-            // ³¢ÊÔ´ÓÎÄ¼şÃû½âÎö°üĞÅÏ¢£¬¸ñÊ½Îª name-version-release.arch.rpm
+            // å°è¯•ä»æ–‡ä»¶åè§£æåŒ…ä¿¡æ¯ï¼Œæ ¼å¼ä¸º name-version-release.arch.rpm
             ParseRpmFileName(fileName, out var name, out var version, out var release, out var arch);
 
             sb.AppendLine("  <package type=\"rpm\">");
@@ -182,9 +182,9 @@ public class RepoMetadataGenerator
     }
 
     /// <summary>
-    /// ´Ó RPM ÎÄ¼şÃû½âÎö°üĞÅÏ¢
-    /// ¸ñÊ½: name-version-release.arch.rpm
-    /// Àı: docker-ce-26.1.4-1.el7.x86_64.rpm
+    /// ä» RPM æ–‡ä»¶åè§£æåŒ…ä¿¡æ¯
+    /// æ ¼å¼: name-version-release.arch.rpm
+    /// ä¾‹: docker-ce-26.1.4-1.el7.x86_64.rpm
     /// </summary>
     private void ParseRpmFileName(string fileName, out string name, out string version, out string release, out string arch)
     {
@@ -193,19 +193,19 @@ public class RepoMetadataGenerator
         release = "0";
         arch = "x86_64";
 
-        // ³¢ÊÔÊ¶±ğ arch ²¿·Ö
+        // å°è¯•è¯†åˆ« arch éƒ¨åˆ†
         string[] knownArches = ["x86_64", "noarch", "i686", "i386", "aarch64", "ppc64le", "s390x"];
         foreach (var a in knownArches)
         {
             if (fileName.EndsWith($".{a}"))
             {
                 arch = a;
-                fileName = fileName[..^(a.Length + 1)]; // È¥µô .arch
+                fileName = fileName[..^(a.Length + 1)]; // å»æ‰ .arch
                 break;
             }
         }
 
-        // °´ '-' ´ÓºóÍùÇ°²ğ·Ö£¬×îºóÁ½¶Î·Ö±ğÊÇ version ºÍ release
+        // æŒ‰ '-' ä»åå¾€å‰æ‹†åˆ†ï¼Œæœ€åä¸¤æ®µåˆ†åˆ«æ˜¯ version å’Œ release
         var parts = fileName.Split('-');
         if (parts.Length >= 3)
         {
@@ -221,7 +221,7 @@ public class RepoMetadataGenerator
     }
 
     /// <summary>
-    /// Éú³É repomd.xml
+    /// ç”Ÿæˆ repomd.xml
     /// </summary>
     private string GenerateRepomdXml(
         string primaryGzPath, string primaryGzChecksum, long primaryGzSize,
@@ -247,7 +247,7 @@ public class RepoMetadataGenerator
     }
 
     /// <summary>
-    /// Ñ¹Ëõ×Ö·û´®ÄÚÈİ²¢±£´æÎª gzip ÎÄ¼ş
+    /// å‹ç¼©å­—ç¬¦ä¸²å†…å®¹å¹¶ä¿å­˜ä¸º gzip æ–‡ä»¶
     /// </summary>
     private async Task CompressAndSave(string content, string outputPath)
     {
@@ -258,7 +258,7 @@ public class RepoMetadataGenerator
     }
 
     /// <summary>
-    /// ¼ÆËã×Ö·û´®ÄÚÈİµÄ SHA256
+    /// è®¡ç®—å­—ç¬¦ä¸²å†…å®¹çš„ SHA256
     /// </summary>
     private string ComputeSha256String(string content)
     {

@@ -1,15 +1,15 @@
-using RepoSync.Models;
+ï»¿using RepoSync.Models;
 using RepoSync.Services;
 
 namespace RepoSync;
 
 /// <summary>
-/// ²Ö¿âÍ¬²½µ÷¶ÈÆ÷ - Ìæ´ú sync-repos.sh ÖĞµÄ while true Ñ­»·Âß¼­
+/// ä»“åº“åŒæ­¥è°ƒåº¦å™¨ - æ›¿ä»£ sync-repos.sh ä¸­çš„ while true å¾ªç¯é€»è¾‘
 /// 
-/// °´Ë³ĞòÍ¬²½ÒÔÏÂ²Ö¿â:
-/// 1. CentOS 7.9.2009 µÄ os/updates/extras ²Ö¿â
-/// 2. Docker CE ²Ö¿â
-/// 3. EPEL ²Ö¿â
+/// æŒ‰é¡ºåºåŒæ­¥ä»¥ä¸‹ä»“åº“:
+/// 1. CentOS 7.9.2009 çš„ os/updates/extras ä»“åº“
+/// 2. Docker CE ä»“åº“
+/// 3. EPEL ä»“åº“
 /// </summary>
 public class SyncOrchestrator
 {
@@ -35,7 +35,7 @@ public class SyncOrchestrator
     }
 
     /// <summary>
-    /// Ñ­»·Í¬²½Èë¿Ú£¬¶ÔÓ¦ shell: while true; do ... sleep ${SYNC_INTERVAL}; done
+    /// å¾ªç¯åŒæ­¥å…¥å£ï¼Œå¯¹åº” shell: while true; do ... sleep ${SYNC_INTERVAL}; done
     /// </summary>
     public async Task RunLoop(CancellationToken cancellationToken = default)
     {
@@ -47,11 +47,11 @@ public class SyncOrchestrator
             }
             catch (Exception ex)
             {
-                Logger.Log($"Í¬²½¹ı³Ì·¢Éú´íÎó£¬½«ÔÚÏÂ´ÎÖÜÆÚÖØÊÔ: {ex.Message}");
+                Logger.Log($"åŒæ­¥è¿‡ç¨‹å‘ç”Ÿé”™è¯¯ï¼Œå°†åœ¨ä¸‹æ¬¡å‘¨æœŸé‡è¯•: {ex.Message}");
                 Logger.Log(ex.StackTrace ?? "");
             }
 
-            Logger.Log($"ÏÂ´ÎÍ¬²½½«ÔÚ {_config.SyncIntervalSeconds / 3600} Ğ¡Ê±ºó¿ªÊ¼...");
+            Logger.Log($"ä¸‹æ¬¡åŒæ­¥å°†åœ¨ {_config.SyncIntervalSeconds / 3600} å°æ—¶åå¼€å§‹...");
 
             try
             {
@@ -59,23 +59,23 @@ public class SyncOrchestrator
             }
             catch (TaskCanceledException)
             {
-                Logger.Log("Í¬²½ÒÑ±»È¡Ïû");
+                Logger.Log("åŒæ­¥å·²è¢«å–æ¶ˆ");
                 break;
             }
         }
     }
 
     /// <summary>
-    /// Ö´ĞĞÒ»´ÎÍêÕûµÄÍ¬²½²Ù×÷
+    /// æ‰§è¡Œä¸€æ¬¡å®Œæ•´çš„åŒæ­¥æ“ä½œ
     /// </summary>
     public async Task RunOnce()
     {
         Logger.LogSeparator();
-        Logger.Log("¿ªÊ¼²Ö¿âÍ¬²½");
+        Logger.Log("å¼€å§‹ä»“åº“åŒæ­¥");
         Logger.LogSeparator();
 
-        // ¹¹½¨±¾µØÎÄ¼ş»º´æË÷Òı£¬É¨ÃèËùÓĞ²Ö¿âÄ¿Â¼ÖĞÒÑÓĞµÄ RPM ÎÄ¼ş
-        // Í¬²½Ê±ÈôÆäËû²Ö¿âÒÑ´æÔÚÏàÍ¬ checksum µÄ°ü£¬¿ÉÖ±½Ó±¾µØ¸´ÖÆ±ÜÃâÖØ¸´ÏÂÔØ
+        // æ„å»ºæœ¬åœ°æ–‡ä»¶ç¼“å­˜ç´¢å¼•ï¼Œæ‰«ææ‰€æœ‰ä»“åº“ç›®å½•ä¸­å·²æœ‰çš„ RPM æ–‡ä»¶
+        // åŒæ­¥æ—¶è‹¥å…¶ä»–ä»“åº“å·²å­˜åœ¨ç›¸åŒ checksum çš„åŒ…ï¼Œå¯ç›´æ¥æœ¬åœ°å¤åˆ¶é¿å…é‡å¤ä¸‹è½½
         var allLocalPaths = new List<string>();
         allLocalPaths.AddRange(_config.CentOSRepos.Select(r => r.LocalPath));
         if (_config.DockerRepo != null) allLocalPaths.Add(_config.DockerRepo.LocalPath);
@@ -83,34 +83,34 @@ public class SyncOrchestrator
         _localCache.BuildIndex(allLocalPaths);
 
         // =============================================
-        // Í¬²½ CentOS 7.9.2009 ²Ö¿â
-        // ¶ÔÓ¦ shell: for repo in "${!REPO_MAP[@]}"; do ... done
+        // åŒæ­¥ CentOS 7.9.2009 ä»“åº“
+        // å¯¹åº” shell: for repo in "${!REPO_MAP[@]}"; do ... done
         // =============================================
-        Logger.Log("¿ªÊ¼Í¬²½ CentOS 7.9.2009 ²Ö¿â...");
+        Logger.Log("å¼€å§‹åŒæ­¥ CentOS 7.9.2009 ä»“åº“...");
 
         foreach (var repo in _config.CentOSRepos)
         {
             var remoteRepomd = $"{repo.BaseUrl.TrimEnd('/')}/repodata/repomd.xml";
             var localRepomd = Path.Combine(repo.LocalPath, "repodata", "repomd.xml");
 
-            Logger.Log($"¼ì²é {repo.Name} ²Ö¿âÊÇ·ñÓĞ¸üĞÂ...");
+            Logger.Log($"æ£€æŸ¥ {repo.Name} ä»“åº“æ˜¯å¦æœ‰æ›´æ–°...");
 
             if (!await _repomdChecker.HasChanged(remoteRepomd, localRepomd))
             {
-                Logger.Log($"{repo.Name} ²Ö¿âÎŞ±ä»¯£¬Ìø¹ıÍ¬²½");
+                Logger.Log($"{repo.Name} ä»“åº“æ— å˜åŒ–ï¼Œè·³è¿‡åŒæ­¥");
                 continue;
             }
 
-            // Í¬²½²Ö¿âÄÚÈİ: ÔªÊı¾İ + Èí¼ş°ü
+            // åŒæ­¥ä»“åº“å†…å®¹: å…ƒæ•°æ® + è½¯ä»¶åŒ…
             await _repoSyncer.SyncRepository(repo.BaseUrl, repo.LocalPath, repo.Name);
 
-            // È·±£ÔªÊı¾İÍêÕû
+            // ç¡®ä¿å…ƒæ•°æ®å®Œæ•´
             await _metadataGenerator.EnsureMetadata(repo.LocalPath, repo.Name);
         }
 
         // =============================================
-        // Í¬²½ Docker CE ²Ö¿â
-        // ¶ÔÓ¦ shell: Docker CE Í¬²½´úÂë¶Î
+        // åŒæ­¥ Docker CE ä»“åº“
+        // å¯¹åº” shell: Docker CE åŒæ­¥ä»£ç æ®µ
         // =============================================
         if (_config.DockerRepo != null)
         {
@@ -118,23 +118,23 @@ public class SyncOrchestrator
             var dockerRepomd = $"{dockerRepo.BaseUrl.TrimEnd('/')}/repodata/repomd.xml";
             var dockerLocalRepomd = Path.Combine(dockerRepo.LocalPath, "repodata", "repomd.xml");
 
-            Logger.Log("¼ì²é Docker CE ²Ö¿âÊÇ·ñÓĞ¸üĞÂ...");
+            Logger.Log("æ£€æŸ¥ Docker CE ä»“åº“æ˜¯å¦æœ‰æ›´æ–°...");
 
             if (await _repomdChecker.HasChanged(dockerRepomd, dockerLocalRepomd))
             {
-                Logger.Log("¿ªÊ¼Í¬²½ Docker CE ²Ö¿â...");
+                Logger.Log("å¼€å§‹åŒæ­¥ Docker CE ä»“åº“...");
                 await _repoSyncer.SyncRepository(dockerRepo.BaseUrl, dockerRepo.LocalPath, dockerRepo.Name);
                 await _metadataGenerator.EnsureMetadata(dockerRepo.LocalPath, dockerRepo.Name);
             }
             else
             {
-                Logger.Log("Docker CE ²Ö¿âÎŞ±ä»¯£¬Ìø¹ıÍ¬²½");
+                Logger.Log("Docker CE ä»“åº“æ— å˜åŒ–ï¼Œè·³è¿‡åŒæ­¥");
             }
         }
 
         // =============================================
-        // Í¬²½ EPEL ²Ö¿â
-        // ¶ÔÓ¦ shell: EPEL Í¬²½´úÂë¶Î
+        // åŒæ­¥ EPEL ä»“åº“
+        // å¯¹åº” shell: EPEL åŒæ­¥ä»£ç æ®µ
         // =============================================
         if (_config.EpelRepo != null)
         {
@@ -142,36 +142,36 @@ public class SyncOrchestrator
             var epelRepomd = $"{epelRepo.BaseUrl.TrimEnd('/')}/repodata/repomd.xml";
             var epelLocalRepomd = Path.Combine(epelRepo.LocalPath, "repodata", "repomd.xml");
 
-            Logger.Log("¼ì²é EPEL ²Ö¿âÊÇ·ñÓĞ¸üĞÂ...");
+            Logger.Log("æ£€æŸ¥ EPEL ä»“åº“æ˜¯å¦æœ‰æ›´æ–°...");
 
             if (await _repomdChecker.HasChanged(epelRepomd, epelLocalRepomd))
             {
-                Logger.Log("¿ªÊ¼Í¬²½ EPEL ²Ö¿â...");
+                Logger.Log("å¼€å§‹åŒæ­¥ EPEL ä»“åº“...");
                 await _repoSyncer.SyncRepository(epelRepo.BaseUrl, epelRepo.LocalPath, epelRepo.Name);
                 await _metadataGenerator.EnsureMetadata(epelRepo.LocalPath, epelRepo.Name);
             }
             else
             {
-                Logger.Log("EPEL ²Ö¿âÎŞ±ä»¯£¬Ìø¹ıÍ¬²½");
+                Logger.Log("EPEL ä»“åº“æ— å˜åŒ–ï¼Œè·³è¿‡åŒæ­¥");
             }
         }
 
         Logger.LogSeparator();
-        Logger.Log("Í¬²½Íê³É");
+        Logger.Log("åŒæ­¥å®Œæˆ");
         Logger.LogSeparator();
 
-        // ÏÔÊ¾¸÷²Ö¿â´ÅÅÌÕ¼ÓÃ£¬¶ÔÓ¦ shell: du -sh
+        // æ˜¾ç¤ºå„ä»“åº“ç£ç›˜å ç”¨ï¼Œå¯¹åº” shell: du -sh
         foreach (var repo in _config.CentOSRepos)
         {
-            Logger.Log($"{repo.Name} Ä¿Â¼´óĞ¡: {FileUtils.GetDirectorySize(repo.LocalPath)}");
+            Logger.Log($"{repo.Name} ç›®å½•å¤§å°: {FileUtils.GetDirectorySize(repo.LocalPath)}");
         }
         if (_config.DockerRepo != null)
         {
-            Logger.Log($"Docker CE Ä¿Â¼´óĞ¡: {FileUtils.GetDirectorySize(_config.DockerRepo.LocalPath)}");
+            Logger.Log($"Docker CE ç›®å½•å¤§å°: {FileUtils.GetDirectorySize(_config.DockerRepo.LocalPath)}");
         }
         if (_config.EpelRepo != null)
         {
-            Logger.Log($"EPEL Ä¿Â¼´óĞ¡: {FileUtils.GetDirectorySize(_config.EpelRepo.LocalPath)}");
+            Logger.Log($"EPEL ç›®å½•å¤§å°: {FileUtils.GetDirectorySize(_config.EpelRepo.LocalPath)}");
         }
 
         Logger.LogSeparator();

@@ -1,10 +1,10 @@
-namespace RepoSync.Services;
+ï»¿namespace RepoSync.Services;
 
 /// <summary>
-/// repomd.xml ±ä¸ü¼ì²âÆ÷ - Ìæ´ú shell ½Å±¾ÖĞµÄ check_repomd_changed() º¯Êı
+/// repomd.xml å˜æ›´æ£€æµ‹å™¨ - æ›¿ä»£ shell è„šæœ¬ä¸­çš„ check_repomd_changed() å‡½æ•°
 /// 
-/// ¹¤×÷Ô­Àí£ºÏÂÔØÔ¶³Ì repomd.xml£¬Óë±¾µØ°æ±¾±È¶Ô MD5£¬
-/// Èç¹û²»Í¬Ôò±íÊ¾²Ö¿âÓĞ¸üĞÂĞèÒªÍ¬²½¡£
+/// å·¥ä½œåŸç†ï¼šä¸‹è½½è¿œç¨‹ repomd.xmlï¼Œä¸æœ¬åœ°ç‰ˆæœ¬æ¯”å¯¹ MD5ï¼Œ
+/// å¦‚æœä¸åŒåˆ™è¡¨ç¤ºä»“åº“æœ‰æ›´æ–°éœ€è¦åŒæ­¥ã€‚
 /// </summary>
 public class RepomdChecker
 {
@@ -16,55 +16,55 @@ public class RepomdChecker
     }
 
     /// <summary>
-    /// ¼ì²éÔ¶³Ì repomd.xml ÊÇ·ñÓë±¾µØ°æ±¾²»Í¬
+    /// æ£€æŸ¥è¿œç¨‹ repomd.xml æ˜¯å¦ä¸æœ¬åœ°ç‰ˆæœ¬ä¸åŒ
     /// </summary>
-    /// <param name="remoteUrl">Ô¶³Ì repomd.xml µÄ URL</param>
-    /// <param name="localPath">±¾µØ repomd.xml µÄÂ·¾¶</param>
-    /// <returns>true = ÓĞ±ä»¯£¬ĞèÒªÍ¬²½; false = ÎŞ±ä»¯</returns>
+    /// <param name="remoteUrl">è¿œç¨‹ repomd.xml çš„ URL</param>
+    /// <param name="localPath">æœ¬åœ° repomd.xml çš„è·¯å¾„</param>
+    /// <returns>true = æœ‰å˜åŒ–ï¼Œéœ€è¦åŒæ­¥; false = æ— å˜åŒ–</returns>
     public async Task<bool> HasChanged(string remoteUrl, string localPath)
     {
-        // ±¾µØÎÄ¼ş²»´æÔÚÊ±ÈÏÎªĞèÒªÍ¬²½£¬¶ÔÓ¦ shell: if [ ! -f "${local_file}" ]
+        // æœ¬åœ°æ–‡ä»¶ä¸å­˜åœ¨æ—¶è®¤ä¸ºéœ€è¦åŒæ­¥ï¼Œå¯¹åº” shell: if [ ! -f "${local_file}" ]
         if (!File.Exists(localPath))
         {
-            Logger.Log("±¾µØÔªÊı¾İÎÄ¼ş²»´æÔÚ£¬ĞèÒªÍ¬²½");
+            Logger.Log("æœ¬åœ°å…ƒæ•°æ®æ–‡ä»¶ä¸å­˜åœ¨ï¼Œéœ€è¦åŒæ­¥");
             return true;
         }
 
         string tempFile = Path.GetTempFileName();
         try
         {
-            // ÏÂÔØÔ¶³Ì repomd.xml£¬¶ÔÓ¦ shell: wget -q -O "${tmp_file}" "${remote_url}"
+            // ä¸‹è½½è¿œç¨‹ repomd.xmlï¼Œå¯¹åº” shell: wget -q -O "${tmp_file}" "${remote_url}"
             var response = await _httpClient.GetAsync(remoteUrl);
             if (!response.IsSuccessStatusCode)
             {
-                Logger.Log("ÎŞ·¨»ñÈ¡Ô¶³ÌÔªÊı¾İ£¬Ä¬ÈÏÖ´ĞĞÍ¬²½");
+                Logger.Log("æ— æ³•è·å–è¿œç¨‹å…ƒæ•°æ®ï¼Œé»˜è®¤æ‰§è¡ŒåŒæ­¥");
                 return true;
             }
 
             var content = await response.Content.ReadAsByteArrayAsync();
             await File.WriteAllBytesAsync(tempFile, content);
 
-            // ±È¶Ô MD5£¬¶ÔÓ¦ shell: md5sum ±È½Ï
+            // æ¯”å¯¹ MD5ï¼Œå¯¹åº” shell: md5sum æ¯”è¾ƒ
             var remoteMd5 = FileUtils.ComputeMd5(tempFile);
             var localMd5 = FileUtils.ComputeMd5(localPath);
 
             if (remoteMd5 == localMd5)
             {
-                return false; // ÎŞ±ä»¯
+                return false; // æ— å˜åŒ–
             }
             else
             {
-                return true; // ÓĞ±ä»¯
+                return true; // æœ‰å˜åŒ–
             }
         }
         catch (Exception ex)
         {
-            Logger.Log($"¼ì²é repomd Ê±³ö´í: {ex.Message}£¬Ä¬ÈÏÖ´ĞĞÍ¬²½");
+            Logger.Log($"æ£€æŸ¥ repomd æ—¶å‡ºé”™: {ex.Message}ï¼Œé»˜è®¤æ‰§è¡ŒåŒæ­¥");
             return true;
         }
         finally
         {
-            // ÇåÀíÁÙÊ±ÎÄ¼ş£¬¶ÔÓ¦ shell: rm -f "${tmp_file}"
+            // æ¸…ç†ä¸´æ—¶æ–‡ä»¶ï¼Œå¯¹åº” shell: rm -f "${tmp_file}"
             if (File.Exists(tempFile))
                 File.Delete(tempFile);
         }

@@ -1,33 +1,33 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 
 namespace RepoSync.Services;
 
 /// <summary>
-/// �����ļ��������� - ɨ�����б��زֿ�Ŀ¼�е� RPM �ļ���
-/// ���ļ���С������������Ҫʱ�ټ���У��;�ȷƥ�䡣
+/// 本地文件缓存索引 - 扫描所有本地仓库目录中的 RPM 文件，
+/// 按文件大小建立索引，需要时再计算校验和精确匹配。
 /// 
-/// ��ͬ���²ֿ�ʱ�����ĳ�����������ֿ����Ѵ��ڣ�checksum ��ͬ����
-/// ֱ�ӱ��ظ��ƣ������ظ����������ء�
+/// 当同步新仓库时，如果某个包在其他仓库中已存在（checksum 相同），
+/// 直接本地复制，避免重复从网络下载。
 /// </summary>
 public class LocalFileCache
 {
     /// <summary>
-    /// �ļ���С -> �ļ�·���б�����С��ͬ���ļ������ж����
+    /// 文件大小 -> 文件路径列表（大小相同的文件可能有多个）
     /// </summary>
     private readonly Dictionary<long, List<string>> _sizeIndex = new();
 
     /// <summary>
-    /// �Ѽ������ checksum ���棺�ļ�·�� -> sha256
+    /// 已计算过的 checksum 缓存：文件路径 -> sha256
     /// </summary>
     private readonly ConcurrentDictionary<string, string> _checksumCache = new();
 
     /// <summary>
-    /// �����е��ļ�����
+    /// 索引中的文件总数
     /// </summary>
     public int FileCount { get; private set; }
 
     /// <summary>
-    /// ɨ��ָ��Ŀ¼�б������������ļ���С����
+    /// 扫描指定目录列表，建立本地文件大小索引
     /// </summary>
     public void BuildIndex(IEnumerable<string> scanDirectories)
     {
@@ -56,37 +56,37 @@ public class LocalFileCache
                     }
                     catch
                     {
-                        // �����޷����ʵ��ļ�
+                        // 忽略无法访问的文件
                     }
                 }
             }
             catch
             {
-                // �����޷����ʵ�Ŀ¼
+                // 忽略无法访问的目录
             }
         }
 
-        Logger.Log($"�����ļ����������ѽ������� {FileCount} �� RPM �ļ�");
+        Logger.Log($"本地文件缓存索引已建立，共 {FileCount} 个 RPM 文件");
     }
 
     /// <summary>
-    /// �����ļ���С��У��ͣ������ڱ��ػ������ҵ�ƥ����ļ���
-    /// �Ȱ���Сɸѡ��ѡ�ļ���O(1)�����ٰ������ SHA256 ��ȷƥ�䡣
+    /// 根据文件大小和校验和，尝试在本地缓存中找到匹配的文件。
+    /// 先按大小筛选候选文件（O(1)），再按需计算 SHA256 精确匹配。
     /// </summary>
-    /// <param name="expectedSize">�������ļ���С</param>
-    /// <param name="expectedChecksum">������У���</param>
-    /// <param name="checksumType">У������ͣ�sha256 �ȣ�</param>
-    /// <returns>ƥ��ı����ļ�·����δ�ҵ��򷵻� null</returns>
+    /// <param name="expectedSize">期望的文件大小</param>
+    /// <param name="expectedChecksum">期望的校验和</param>
+    /// <param name="checksumType">校验和类型（sha256 等）</param>
+    /// <returns>匹配的本地文件路径，未找到则返回 null</returns>
     public string? FindMatchingFile(long expectedSize, string expectedChecksum, string checksumType = "sha256")
     {
         if (string.IsNullOrEmpty(expectedChecksum) || expectedSize <= 0)
             return null;
 
-        // ����С����ɸѡ
+        // 按大小快速筛选
         if (!_sizeIndex.TryGetValue(expectedSize, out var candidates))
             return null;
 
-        // �Ժ�ѡ�ļ���һ��֤У���
+        // 对候选文件逐一验证校验和
         foreach (var filePath in candidates)
         {
             if (!File.Exists(filePath)) continue;
@@ -99,7 +99,7 @@ public class LocalFileCache
             }
             catch
             {
-                // ���Լ���ʧ�ܵ��ļ�
+                // 忽略计算失败的文件
             }
         }
 
@@ -107,7 +107,7 @@ public class LocalFileCache
     }
 
     /// <summary>
-    /// ��ȡ������ļ���У��ͣ������棩
+    /// 获取或计算文件的校验和（带缓存）
     /// </summary>
     private string GetOrComputeChecksum(string filePath, string checksumType)
     {
@@ -124,7 +124,7 @@ public class LocalFileCache
     }
 
     /// <summary>
-    /// �������ص��ļ�ע�ᵽ�����У��������ֿ�ͬ��ʱ����
+    /// 将新下载的文件注册到索引中，供后续仓库同步时复用
     /// </summary>
     public void RegisterFile(string filePath)
     {
@@ -148,7 +148,7 @@ public class LocalFileCache
         }
         catch
         {
-            // ����
+            // 忽略
         }
     }
 }
