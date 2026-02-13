@@ -95,10 +95,18 @@ public class SyncOrchestrator
 
             Logger.Log($"检查 {repo.Name} 仓库是否有更新...");
 
-            if (!await _repomdChecker.HasChanged(remoteRepomd, localRepomd))
+            var repomdChanged = await _repomdChecker.HasChanged(remoteRepomd, localRepomd);
+
+            if (!repomdChanged)
             {
-                Logger.Log($"{repo.Name} 仓库无变化，跳过同步");
-                continue;
+                // repomd.xml 未变化，但仍需检查本地包是否完整（可能上次同步被中断）
+                var missingCount = _repoSyncer.CheckLocalCompleteness(repo.LocalPath, repo.Name);
+                if (missingCount == 0)
+                {
+                    Logger.Log($"{repo.Name} 仓库无变化且本地包完整，跳过同步");
+                    continue;
+                }
+                Logger.Log($"{repo.Name} 仓库 repomd.xml 未变化，但本地缺失 {missingCount} 个包，继续同步...");
             }
 
             // 同步仓库内容: 元数据 + 软件包
@@ -120,15 +128,28 @@ public class SyncOrchestrator
 
             Logger.Log("检查 Docker CE 仓库是否有更新...");
 
-            if (await _repomdChecker.HasChanged(dockerRepomd, dockerLocalRepomd))
+            var dockerChanged = await _repomdChecker.HasChanged(dockerRepomd, dockerLocalRepomd);
+            var dockerNeedSync = dockerChanged;
+
+            if (!dockerChanged)
+            {
+                var missingCount = _repoSyncer.CheckLocalCompleteness(dockerRepo.LocalPath, dockerRepo.Name);
+                if (missingCount == 0)
+                {
+                    Logger.Log("Docker CE 仓库无变化且本地包完整，跳过同步");
+                }
+                else
+                {
+                    Logger.Log($"Docker CE 仓库 repomd.xml 未变化，但本地缺失 {missingCount} 个包，继续同步...");
+                    dockerNeedSync = true;
+                }
+            }
+
+            if (dockerNeedSync)
             {
                 Logger.Log("开始同步 Docker CE 仓库...");
                 await _repoSyncer.SyncRepository(dockerRepo.BaseUrl, dockerRepo.LocalPath, dockerRepo.Name);
                 await _metadataGenerator.EnsureMetadata(dockerRepo.LocalPath, dockerRepo.Name);
-            }
-            else
-            {
-                Logger.Log("Docker CE 仓库无变化，跳过同步");
             }
         }
 
@@ -144,15 +165,28 @@ public class SyncOrchestrator
 
             Logger.Log("检查 EPEL 仓库是否有更新...");
 
-            if (await _repomdChecker.HasChanged(epelRepomd, epelLocalRepomd))
+            var epelChanged = await _repomdChecker.HasChanged(epelRepomd, epelLocalRepomd);
+            var epelNeedSync = epelChanged;
+
+            if (!epelChanged)
+            {
+                var missingCount = _repoSyncer.CheckLocalCompleteness(epelRepo.LocalPath, epelRepo.Name);
+                if (missingCount == 0)
+                {
+                    Logger.Log("EPEL 仓库无变化且本地包完整，跳过同步");
+                }
+                else
+                {
+                    Logger.Log($"EPEL 仓库 repomd.xml 未变化，但本地缺失 {missingCount} 个包，继续同步...");
+                    epelNeedSync = true;
+                }
+            }
+
+            if (epelNeedSync)
             {
                 Logger.Log("开始同步 EPEL 仓库...");
                 await _repoSyncer.SyncRepository(epelRepo.BaseUrl, epelRepo.LocalPath, epelRepo.Name);
                 await _metadataGenerator.EnsureMetadata(epelRepo.LocalPath, epelRepo.Name);
-            }
-            else
-            {
-                Logger.Log("EPEL 仓库无变化，跳过同步");
             }
         }
 

@@ -285,32 +285,56 @@ public class RepoSyncer
     }
 
     /// <summary>
-    /// 并发下载 RPM 软件包，已存在且大小匹配的文件将被跳过。
+    /// 并发下载 RPM 软件包，基于元数据中的 checksum 进行完整性校验。
+    /// 已存在且大小+校验和均匹配的文件将被跳过；大小匹配但校验和不一致的文件（如断电导致的不完整文件）将被重新下载。
     /// 优先尝试从本地文件缓存中查找 checksum 匹配的文件进行复制，避免重复网络下载。
+    /// 新下载的文件先写入临时文件，校验通过后再重命名，防止断电产生不完整文件。
     /// </summary>
     private async Task DownloadPackages(List<RpmPackageInfo> packages, string baseUrl, string localPath, string repoName)
     {
-        // 筛选出需要下载的包
+        // 筛选出需要下载的包：基于大小+checksum 双重校验
         var toDownload = new List<RpmPackageInfo>();
         int skipped = 0;
+        int corrupted = 0;
 
         foreach (var pkg in packages)
         {
             var localFile = Path.Combine(localPath, pkg.LocationHref.Replace('/', Path.DirectorySeparatorChar));
             if (File.Exists(localFile))
             {
-                // 如果文件已存在且大小匹配则跳过
                 var fileInfo = new FileInfo(localFile);
                 if (fileInfo.Length == pkg.PackageSize)
                 {
-                    skipped++;
-                    continue;
+                    // 大小匹配，进一步校验 checksum 确保文件完整
+                    if (!string.IsNullOrEmpty(pkg.Checksum))
+                    {
+                        var localChecksum = ComputeChecksum(localFile, pkg.ChecksumType);
+                        if (localChecksum == pkg.Checksum)
+                        {
+                            skipped++;
+                            continue;
+                        }
+                        else
+                        {
+                            // 大小一致但 checksum 不匹配，文件可能损坏（如断电导致），需要重新下载
+                            corrupted++;
+                            Logger.Log($"[{repoName}] 文件损坏(校验和不匹配): {pkg.Name}，将重新下载");
+                        }
+                    }
+                    else
+                    {
+                        // 没有 checksum 信息时仅按大小判断
+                        skipped++;
+                        continue;
+                    }
                 }
+                // 大小不匹配，说明文件不完整，需要重新下载
             }
             toDownload.Add(pkg);
         }
 
-        Logger.Log($"[{repoName}] 需要处理: {toDownload.Count} 个包待下载, {skipped} 个已存在跳过");
+        Logger.Log($"[{repoName}] 需要处理: {toDownload.Count} 个包待下载, {skipped} 个已存在跳过" +
+                   (corrupted > 0 ? $", {corrupted} 个损坏将重新下载" : ""));
 
         if (toDownload.Count == 0) return;
 
@@ -350,11 +374,30 @@ public class RepoSyncer
                 }
 
                 // 本地缓存未命中，从远程下载
+                // 先写入临时文件，校验通过后再重命名，防止断电产生不完整文件
                 var remoteUrl = $"{baseUrl.TrimEnd('/')}/{pkg.LocationHref}";
+                var tempFile = localFile + ".downloading";
                 var response = await _httpClient.GetAsync(remoteUrl);
                 response.EnsureSuccessStatusCode();
                 var data = await response.Content.ReadAsByteArrayAsync();
-                await File.WriteAllBytesAsync(localFile, data);
+                await File.WriteAllBytesAsync(tempFile, data);
+
+                // 校验下载文件的完整性
+                if (!string.IsNullOrEmpty(pkg.Checksum))
+                {
+                    var downloadedChecksum = ComputeChecksum(tempFile, pkg.ChecksumType);
+                    if (downloadedChecksum != pkg.Checksum)
+                    {
+                        // 校验失败，删除临时文件
+                        File.Delete(tempFile);
+                        throw new InvalidDataException($"下载后校验和不匹配: 期望 {pkg.Checksum[..8]}..., 实际 {downloadedChecksum[..8]}...");
+                    }
+                }
+
+                // 校验通过，重命名为正式文件
+                if (File.Exists(localFile))
+                    File.Delete(localFile);
+                File.Move(tempFile, localFile);
 
                 // 将新下载的文件注册到缓存索引，供后续仓库同步时复用
                 _localCache.RegisterFile(localFile);
@@ -386,5 +429,70 @@ public class RepoSyncer
         await Task.WhenAll(tasks);
 
         Logger.Log($"[{repoName}] 完成 - 网络下载: {downloaded}, 本地复制: {copiedLocal}, 失败: {failed}");
+    }
+
+    /// <summary>
+    /// 根据校验和类型计算文件的校验和
+    /// </summary>
+    private static string ComputeChecksum(string filePath, string checksumType)
+    {
+        return checksumType.ToLower() switch
+        {
+            "sha256" => FileUtils.ComputeSha256(filePath),
+            "md5" => FileUtils.ComputeMd5(filePath),
+            _ => FileUtils.ComputeSha256(filePath)
+        };
+    }
+
+    /// <summary>
+    /// 检查本地仓库的包是否完整（与 primary.xml 中记载的包列表对比）。
+    /// 返回缺失的包数量。若返回 0 则表示本地包完整。
+    /// 若本地无 repomd.xml 或 primary.xml，返回 -1 表示未知（需要全量同步）。
+    /// </summary>
+    public int CheckLocalCompleteness(string localPath, string repoName)
+    {
+        var repomdPath = Path.Combine(localPath, "repodata", "repomd.xml");
+        if (!File.Exists(repomdPath))
+            return -1;
+
+        try
+        {
+            var repomdDoc = XDocument.Load(repomdPath);
+            var primaryHref = GetDataHref(repomdDoc, "primary");
+            if (primaryHref == null)
+                return -1;
+
+            var primaryLocalPath = Path.Combine(localPath, primaryHref);
+            if (!File.Exists(primaryLocalPath))
+                return -1;
+
+            var packages = ParsePrimaryXml(primaryLocalPath);
+            int missing = 0;
+
+            foreach (var pkg in packages)
+            {
+                var localFile = Path.Combine(localPath, pkg.LocationHref.Replace('/', Path.DirectorySeparatorChar));
+                if (!File.Exists(localFile))
+                {
+                    missing++;
+                    continue;
+                }
+
+                // 文件存在但大小不匹配，视为不完整
+                var fileInfo = new FileInfo(localFile);
+                if (fileInfo.Length != pkg.PackageSize)
+                {
+                    missing++;
+                }
+            }
+
+            Logger.Log($"[{repoName}] 本地完整性检查: 元数据记载 {packages.Count} 个包，缺失/不完整 {missing} 个");
+            return missing;
+        }
+        catch (Exception ex)
+        {
+            Logger.Log($"[{repoName}] 检查本地完整性时出错: {ex.Message}");
+            return -1;
+        }
     }
 }
