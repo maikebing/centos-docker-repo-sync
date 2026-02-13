@@ -3,14 +3,18 @@ services:
   sync:
     build: .
     volumes:
-      - ./repos:/data/repos
+      - ./repos2:/data/repos
+    restart: unless-stopped
+    # 可通过 command 传递参数，例如只执行一次：
+    # command: ["--once"]
 
   nginx:
     image: nginx:latest
     ports:
       - "8080:80"
     volumes:
-      - ./repos:/data/repos:ro
+      - ./repos2:/data/repos:ro
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - sync
+    restart: unless-stopped
