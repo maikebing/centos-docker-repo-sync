@@ -5,6 +5,39 @@ log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $@"
 }
 
+# 检查远程 repomd.xml 是否有变化
+# 参数: $1=远程 repomd URL, $2=本地 repomd 路径
+check_repomd_changed() {
+    local remote_url="$1"
+    local local_file="$2"
+    local tmp_file="/tmp/repomd_remote.xml"
+
+    # 本地不存在，需要同步
+    if [ ! -f "${local_file}" ]; then
+        log "本地元数据不存在，需要同步"
+        return 0
+    fi
+
+    # 下载远程 repomd.xml
+    wget -q -O "${tmp_file}" "${remote_url}" 2>/dev/null
+    if [ $? -ne 0 ]; then
+        log "无法获取远程元数据，执行同步"
+        rm -f "${tmp_file}"
+        return 0
+    fi
+
+    # 对比 md5
+    local remote_md5=$(md5sum "${tmp_file}" | awk '{print $1}')
+    local local_md5=$(md5sum "${local_file}" | awk '{print $1}')
+    rm -f "${tmp_file}"
+
+    if [ "${remote_md5}" = "${local_md5}" ]; then
+        return 1  # 未变化
+    else
+        return 0  # 有变化
+    fi
+}
+
 CENTOS_SOURCE="https://mirrors.tuna.tsinghua.edu.cn/centos-vault/7.9.2009"
 CENTOS_TARGET="/data/repos/centos/7.9.2009"
 DOCKER_TARGET="/data/repos/docker-ce"
@@ -26,9 +59,24 @@ REPO_MAP["os"]="C7.9.2009-base"
 REPO_MAP["updates"]="C7.9.2009-updates"
 REPO_MAP["extras"]="C7.9.2009-extras"
 
+# 定义仓库对应的远程 baseurl
+declare -A REPO_URL
+REPO_URL["os"]="https://mirrors.tuna.tsinghua.edu.cn/centos-vault/7.9.2009/os/x86_64"
+REPO_URL["updates"]="https://mirrors.tuna.tsinghua.edu.cn/centos-vault/7.9.2009/updates/x86_64"
+REPO_URL["extras"]="https://mirrors.tuna.tsinghua.edu.cn/centos-vault/7.9.2009/extras/x86_64"
+
 for repo in "${!REPO_MAP[@]}"; do
     repoid="${REPO_MAP[$repo]}"
     target="${CENTOS_TARGET}/${repo}"
+    remote_repomd="${REPO_URL[$repo]}/repodata/repomd.xml"
+    local_repomd="${target}/repodata/repomd.xml"
+    
+    log "检查 ${repo} 仓库是否有更新..."
+    if ! check_repomd_changed "${remote_repomd}" "${local_repomd}"; then
+        log "${repo} 仓库未变化，跳过同步"
+        continue
+    fi
+    
     log "开始同步 ${repo} 仓库 (repoid: ${repoid})..."
     
     # 使用 reposync 同步仓库，下载到 repoid 目录
@@ -61,8 +109,13 @@ for repo in "${!REPO_MAP[@]}"; do
 done
 
 # 同步 Docker CE 仓库
-log "正在同步 Docker CE 仓库..."
-mkdir -p ${DOCKER_TARGET}/centos/7/x86_64
+DOCKER_REPOMD="https://download.docker.com/linux/centos/7/x86_64/stable/repodata/repomd.xml"
+DOCKER_LOCAL_REPOMD="${DOCKER_TARGET}/docker-ce-stable/repodata/repomd.xml"
+
+log "检查 Docker CE 仓库是否有更新..."
+if check_repomd_changed "${DOCKER_REPOMD}" "${DOCKER_LOCAL_REPOMD}"; then
+    log "正在同步 Docker CE 仓库..."
+    mkdir -p ${DOCKER_TARGET}/centos/7/x86_64
 
 # 添加 Docker CE 仓库
 if [ ! -f /etc/yum.repos.d/docker-ce.repo ]; then
@@ -84,6 +137,9 @@ if [ -d "${DOCKER_TARGET}/docker-ce-stable" ]; then
     createrepo ${DOCKER_TARGET}/docker-ce-stable
     log "Docker CE 元数据创建完成"
 fi
+else
+    log "Docker CE 仓库未变化，跳过同步"
+fi
 
 log "=========================================="
 log "同步完成"
@@ -94,19 +150,27 @@ log "=========================================="
 
 # 同步 EPEL 仓库
 EPEL_TARGET="/data/repos/epel/7"
-log "正在同步 EPEL 仓库..."
-mkdir -p ${EPEL_TARGET}
-reposync -c /etc/yum.repos.d/CentOS-Vault.repo \
-    --repoid=epel \
-    --download-metadata \
-    --download_path=${EPEL_TARGET} \
-    -n || log "警告: EPEL 同步可能不完整"
+EPEL_REPOMD="https://mirrors.aliyun.com/epel/7/x86_64/repodata/repomd.xml"
+EPEL_LOCAL_REPOMD="${EPEL_TARGET}/epel/repodata/repomd.xml"
 
-if [ -d "${EPEL_TARGET}" ]; then
-    log "为 EPEL 创建元数据..."
-    createrepo --update ${EPEL_TARGET}/epel || \
-    createrepo ${EPEL_TARGET}/epel
-    log "EPEL 元数据创建完成"
+log "检查 EPEL 仓库是否有更新..."
+if check_repomd_changed "${EPEL_REPOMD}" "${EPEL_LOCAL_REPOMD}"; then
+    log "正在同步 EPEL 仓库..."
+    mkdir -p ${EPEL_TARGET}
+    reposync -c /etc/yum.repos.d/CentOS-Vault.repo \
+        --repoid=epel \
+        --download-metadata \
+        --download_path=${EPEL_TARGET} \
+        -n || log "警告: EPEL 同步可能不完整"
+
+    if [ -d "${EPEL_TARGET}" ]; then
+        log "为 EPEL 创建元数据..."
+        createrepo --update ${EPEL_TARGET}/epel || \
+        createrepo ${EPEL_TARGET}/epel
+        log "EPEL 元数据创建完成"
+    fi
+else
+    log "EPEL 仓库未变化，跳过同步"
 fi
 
 # 显示磁盘使用情况
