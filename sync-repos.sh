@@ -20,26 +20,42 @@ log "=========================================="
 log "正在同步 CentOS 7.9.2009 仓库..."
 mkdir -p ${CENTOS_TARGET}
 
-# 定义需要同步的 CentOS 仓库
-REPOS=("os" "updates" "extras")
+# 定义仓库名和对应的 repoid
+declare -A REPO_MAP
+REPO_MAP["os"]="C7.9.2009-base"
+REPO_MAP["updates"]="C7.9.2009-updates"
+REPO_MAP["extras"]="C7.9.2009-extras"
 
-for repo in "${REPOS[@]}"; do
-    log "开始同步 ${repo} 仓库..."
-    mkdir -p ${CENTOS_TARGET}/${repo}
+for repo in "${!REPO_MAP[@]}"; do
+    repoid="${REPO_MAP[$repo]}"
+    target="${CENTOS_TARGET}/${repo}"
+    log "开始同步 ${repo} 仓库 (repoid: ${repoid})..."
     
-    # 使用 reposync 同步仓库
+    # 使用 reposync 同步仓库，下载到 repoid 目录
     log "执行 reposync 命令下载 ${repo} 仓库..."
     reposync -c /etc/yum.repos.d/CentOS-Vault.repo \
-        --repoid=C7.9.2009-${repo} \
+        --repoid=${repoid} \
         --download-metadata \
-        --download_path=${CENTOS_TARGET}/${repo} \
+        --download_path=${CENTOS_TARGET} \
         -n || log "警告: ${repo} 同步可能不完整"
     
+    # 将 repoid 目录重命名为干净的目录名
+    if [ -d "${CENTOS_TARGET}/${repoid}" ] && [ "${repoid}" != "${repo}" ]; then
+        log "整理目录: ${repoid} -> ${repo}"
+        # 如果目标目录已存在，先合并内容
+        if [ -d "${target}" ]; then
+            mv ${CENTOS_TARGET}/${repoid}/* ${target}/ 2>/dev/null || true
+            rm -rf ${CENTOS_TARGET}/${repoid}
+        else
+            mv ${CENTOS_TARGET}/${repoid} ${target}
+        fi
+    fi
+    
     # 创建仓库元数据
-    if [ -d "${CENTOS_TARGET}/${repo}" ]; then
+    if [ -d "${target}" ]; then
         log "为 ${repo} 创建元数据..."
-        createrepo --update ${CENTOS_TARGET}/${repo} || \
-        createrepo ${CENTOS_TARGET}/${repo}
+        createrepo --update ${target} || \
+        createrepo ${target}
         log "${repo} 元数据创建完成"
     fi
 done
