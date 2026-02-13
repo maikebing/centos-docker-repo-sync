@@ -34,7 +34,7 @@ Logger.Log("CentOS 仓库同步工具 (C# 版) 启动");
 var config = new SyncConfig
 {
     SyncIntervalSeconds = 86400, // 每天同步一次，对应 SYNC_INTERVAL=86400
-    MaxConcurrentDownloads = 5,  // 并发下载数，shell 版 reposync 默认串行下载
+    MaxConcurrentDownloads =  Math.Max(Environment.ProcessorCount * 2, 8),  // 并发下载数，shell 版 reposync 默认串行下载
     HttpTimeoutSeconds = 300,
 
     // CentOS 7.9.2009 仓库，对应 REPO_MAP 和 REPO_URL
