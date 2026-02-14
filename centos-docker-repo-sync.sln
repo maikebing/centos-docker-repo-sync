@@ -1,10 +1,23 @@
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.5.2.0
+# Visual Studio Version 18
+VisualStudioVersion = 18.3.11505.172
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "RepoSync", "RepoSync", "{915C5E0F-61DE-ACE3-D224-9E6901E8107E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RepoSync", "RepoSync\RepoSync\RepoSync.csproj", "{701B888D-F862-1BC7-7ABC-16061B9BAD11}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Files", "Files", "{2B3BBAF6-D762-42F0-932E-A1B502101450}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+		.gitignore = .gitignore
+		build-and-run.sh = build-and-run.sh
+		CentOS-Vault.repo = CentOS-Vault.repo
+		docker-compose.yml = docker-compose.yml
+		Dockerfile = Dockerfile
+		nginx.conf = nginx.conf
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
