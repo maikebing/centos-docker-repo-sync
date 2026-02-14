@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UIXE 内部镜像站</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, "Microsoft YaHei", sans-serif; background: #f5f7fa; color: #333; line-height: 1.6; }
+        .container { max-width: 960px; margin: 0 auto; padding: 20px; }
+        h1 { text-align: center; margin: 30px 0; color: #2c3e50; }
+        h2 { color: #34495e; margin: 24px 0 12px; border-left: 4px solid #3498db; padding-left: 12px; }
+        h3 { color: #555; margin: 16px 0 8px; }
+        table { width: 100%; border-collapse: collapse; margin: 12px 0 24px; background: #fff; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        th, td { padding: 10px 16px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #3498db; color: #fff; }
+        tr:hover { background: #f0f7ff; }
+        pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radius: 6px; overflow-x: auto; margin: 10px 0 20px; font-size: 14px; }
+        code { font-family: "Consolas", "Source Code Pro", monospace; }
+        .note { background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 16px; border-radius: 4px; margin: 12px 0; }
+        .step { background: #fff; padding: 16px; border-radius: 6px; margin: 12px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .step-num { display: inline-block; background: #3498db; color: #fff; width: 28px; height: 28px; text-align: center; line-height: 28px; border-radius: 50%; margin-right: 8px; font-weight: bold; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        footer { text-align: center; margin: 40px 0 20px; color: #999; font-size: 14px; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+<h1>&#128230; UIXE 内部镜像站</h1>
+<p style="text-align:center; color:#666; margin-bottom:30px;">镜像服务地址：<strong>http://mirrors.uixe.net</strong></p>
+
+<h2>可用镜像仓库</h2>
+<table>
+    <thead>
+        <tr><th>仓库名称</th><th>说明</th><th>来源</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><a href="/centos/7.9.2009/os/">CentOS 7.9.2009 - Base</a></td><td>基础系统包</td><td>清华 centos-vault</td></tr>
+        <tr><td><a href="/centos/7.9.2009/updates/">CentOS 7.9.2009 - Updates</a></td><td>安全和功能更新</td><td>清华 centos-vault</td></tr>
+        <tr><td><a href="/centos/7.9.2009/extras/">CentOS 7.9.2009 - Extras</a></td><td>常用附加包</td><td>清华 centos-vault</td></tr>
+        <tr><td><a href="/epel/7/">EPEL 7</a></td><td>Extra Packages for Enterprise Linux</td><td>阿里 EPEL 镜像</td></tr>
+        <tr><td><a href="/docker-ce/docker-ce-stable/">Docker CE Stable</a></td><td>Docker 社区版（稳定版）</td><td>Docker 官方</td></tr>
+    </tbody>
+</table>
+
+<h2>快速配置</h2>
+
+<div class="step">
+    <h3><span class="step-num">1</span>下载 repo 配置文件</h3>
+    <pre><code>curl -o /etc/yum.repos.d/uixe_mirror.repo http://mirrors.uixe.net/uixe_mirror.repo</code></pre>
+</div>
+
+<div class="step">
+    <h3><span class="step-num">2</span>备份并禁用原有源</h3>
+    <pre><code># 备份原有 repo 文件
+mkdir -p /etc/yum.repos.d/backup
+mv /etc/yum.repos.d/CentOS-*.repo /etc/yum.repos.d/backup/ 2>/dev/null</code></pre>
+</div>
+
+<div class="step">
+    <h3><span class="step-num">3</span>刷新缓存</h3>
+    <pre><code>yum clean all
+yum makecache</code></pre>
+</div>
+
+<div class="step">
+    <h3><span class="step-num">4</span>验证仓库</h3>
+    <pre><code>yum repolist</code></pre>
+</div>
+
+<h2>域名 hosts文件设置</h2>
+<pre>
+    <code> echo "10.165.79.130  git.uixe.net registry.uixe.net  mirrors.uixe.net"  >> /etc/hosts        </code>
+</pre>
+
+<h2>一键配置（复制粘贴即可）</h2>
+<pre>
+    <code>curl -o /etc/yum.repos.d/uixe_mirror.repo http://mirrors.uixe.net/uixe_mirror.repo \
+&& mkdir -p /etc/yum.repos.d/backup \
+&& mv /etc/yum.repos.d/CentOS-*.repo /etc/yum.repos.d/backup/ 2>/dev/null \
+&& yum clean all \
+&& yum makecache</code></pre>
+
+<h2>安装 Docker</h2>
+<pre><code># 安装 Docker CE
+yum install -y docker-ce docker-ce-cli containerd.io
+
+#docker-compose 插件
+rm /usr/local/bin/docker-compose  -f;rm /usr/local/sbin/docker-compose -f;rm /usr/bin/docker-compose -f
+ln -s /usr/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
+
+# 启动 Docker
+systemctl start docker
+systemctl enable docker
+
+# 验证安装
+docker --version</code></pre>
+
+<div class="note">
+    <strong>注意：</strong>镜像每天自动同步一次。如遇到包版本问题，请联系管理员手动触发同步。
+</div>
+
+<h2>仓库目录</h2>
+<ul style="margin: 12px 0 24px 20px;">
+    <li><a href="/centos/">/centos/</a> — CentOS 系统仓库</li>
+    <li><a href="/epel/">/epel/</a> — EPEL 扩展包仓库</li>
+    <li><a href="/docker-ce/">/docker-ce/</a> — Docker CE 仓库</li>
+    <li><a href="/uixe_mirror.repo">/uixe_mirror.repo</a> — 下载 repo 配置文件</li>
+</ul>
+
+<footer>UIXE 内部镜像站 | 同步源：清华大学 TUNA 镜像站 &amp; Docker 官方 | 自动同步周期：每日一次</footer>
+
+</div>
+</body>
+</html>
